@@ -1,0 +1,39 @@
+# Sube automáticamente el código a Google Apps Script cada vez que hay cambios en main.
+# Necesita 3 secrets en GitHub (Settings → Secrets and variables → Actions):
+#   CLASPRC_JSON   contenido de ~/.clasprc.json después de hacer `clasp login` en tu compu
+#   SCRIPT_ID      ID del proyecto de Apps Script (Configuración del proyecto → ID de la secuencia de comandos)
+#   DEPLOYMENT_ID  ID de tu implementación web (Implementar → Administrar implementaciones), para que la URL no cambie
+# Si faltan los secrets, el workflow no hace nada.
+name: Deploy a Apps Script
+
+on:
+  push:
+    branches: [main]
+    paths: ['Code.gs', 'Index.html', 'appsscript.json']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Push y deploy
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+          DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
+        run: |
+          if [ -z "$CLASPRC_JSON" ] || [ -z "$SCRIPT_ID" ]; then
+            echo "Faltan los secrets CLASPRC_JSON / SCRIPT_ID: no se despliega."
+            exit 0
+          fi
+          npm install -g @google/clasp@2.4.2
+          printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
+          printf '{"scriptId":"%s","rootDir":"."}' "$SCRIPT_ID" > .clasp.json
+          clasp push --force
+          if [ -n "$DEPLOYMENT_ID" ]; then
+            clasp deploy --deploymentId "$DEPLOYMENT_ID" --description "GitHub ${GITHUB_SHA::7}"
+          fi
