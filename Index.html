@@ -17,12 +17,12 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--bg); color: var(--tx); font: 15px/1.4 Inter, -apple-system, 'Segoe UI', Roboto, sans-serif; }
   body { padding-bottom: 88px; }
-  header { position: sticky; top: 0; z-index: 5; background: rgba(9, 9, 11, .92); backdrop-filter: blur(10px);
+  header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: rgba(9, 9, 11, .92); backdrop-filter: blur(10px);
     padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
   .logo { font-family: var(--disp); font-size: 26px; letter-spacing: 2px; background: var(--grad);
     -webkit-background-clip: text; background-clip: text; color: transparent; line-height: 1; }
   .streak { font-family: var(--disp); font-size: 18px; letter-spacing: 1px; display: flex; align-items: center; gap: 4px; }
-  main { padding: 12px 16px; max-width: 720px; margin: 0 auto; }
+  main { padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); max-width: 720px; margin: 0 auto; }
   nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 6; display: flex; background: #0e0e11;
     border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
   nav button { flex: 1; background: none; border: 0; color: var(--mut); padding: 9px 0 11px; font-size: 11px; font-weight: 600;
@@ -203,8 +203,114 @@ function toast(msg, ms, pr) {
   const t = $('#toast'); t.innerHTML = msg; t.className = pr ? 'pr' : ''; t.style.opacity = 1;
   clearTimeout(toast._t); toast._t = setTimeout(() => { t.style.opacity = 0; setTimeout(() => t.classList.add('hide'), 300); }, ms || 2500);
 }
+/* Backend: Google Apps Script (google.script.run) o, publicada en Claude, el almacenamiento privado del artifact */
+const GAS = !!(window.google && google.script && google.script.run);
 function call(fn, ...args) {
+  if (!GAS) return LocalAPI.call(fn, args);
   return new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+}
+const LocalAPI = (() => {
+  let C = null, RAW = null, ready = null;
+  const queue = {};
+  const nowIso = () => new Date().toISOString().slice(0, 19);
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const timeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('No se pudo conectar con tu almacenamiento. Revisá la conexión.')), ms))]);
+  function init() {
+    if (ready) return ready;
+    ready = (async () => {
+      if (!window.claude || !claude.use) throw new Error('Abrí la app desde su link de Claude.');
+      const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+      const id = user ? await user.id() : null;
+      if (!db || !id) throw new Error('Iniciá sesión en Claude para guardar tus datos.');
+      C = db.collection('data/users/' + id);
+      const snap = await timeout(C.get(), 15000);
+      RAW = { cfg: {}, rutina: [], alimentos: [], pesos: [], ses: {}, com: {} };
+      snap.docs.forEach(d => {
+        const v = d.exists ? clone(d.data()) : null; if (!v) return;
+        if (d.id === 'cfg') RAW.cfg = v.cfg || {};
+        else if (d.id === 'rutina') RAW.rutina = v.rows || [];
+        else if (d.id === 'alimentos') RAW.alimentos = v.rows || [];
+        else if (d.id === 'pesos') RAW.pesos = v.rows || [];
+        else if (d.id.startsWith('ses_') && v.id) RAW.ses[v.id] = v;
+        else if (d.id.startsWith('com_') && v.fecha) RAW.com[v.fecha] = v.items || [];
+      });
+    })();
+    ready.catch(() => { ready = null; });
+    return ready;
+  }
+  // Una escritura a la vez por documento; el contenido se arma al momento de escribir
+  function write(key, build) {
+    queue[key] = (queue[key] || Promise.resolve()).catch(() => {}).then(() => {
+      const data = build();
+      return data ? C.doc(key).set(data) : C.doc(key).delete();
+    });
+    return queue[key];
+  }
+  const writeDay = f => write('com_' + f, () => (RAW.com[f] && RAW.com[f].length) ? { tipo: 'com', fecha: f, items: RAW.com[f] } : null);
+  const dayOf = id => Object.keys(RAW.com).find(f => RAW.com[f].some(c => c.id === id));
+  const API = {
+    getData: () => clone({
+      rutina: RAW.rutina, alimentos: RAW.alimentos, pesos: RAW.pesos, cfg: RAW.cfg, sheetUrl: null,
+      registros: Object.values(RAW.ses).flatMap(s => (s.sets || []).map(x => Object.assign({ sesionId: s.id, fecha: s.fecha, dia: s.dia, notas: s.notas, creado: s.creado }, x))),
+      comidas: Object.values(RAW.com).flat()
+    }),
+    async saveRutina(rows) { RAW.rutina = rows || []; await write('rutina', () => ({ rows: RAW.rutina })); return API.getData(); },
+    async saveSesion(s) {
+      const id = s.sesionId || uid();
+      if (!(s.sets || []).length) throw new Error('No hay series para guardar');
+      RAW.ses[id] = { tipo: 'ses', id, fecha: String(s.fecha), dia: s.dia || '', notas: s.notas || '', creado: nowIso(),
+        sets: s.sets.map(x => ({ ejercicio: x.ejercicio, serie: Number(x.serie) || 1, peso: Number(x.peso) || 0, reps: Number(x.reps) || 0, rpe: x.rpe === '' || x.rpe == null ? '' : Number(x.rpe) })) };
+      await write('ses_' + id, () => RAW.ses[id] || null); return API.getData();
+    },
+    async deleteSesion(id) { delete RAW.ses[id]; await write('ses_' + id, () => RAW.ses[id] || null); return API.getData(); },
+    async addComidas(items) {
+      const days = new Set();
+      items.forEach(i => { const f = String(i.fecha); (RAW.com[f] = RAW.com[f] || []).push(Object.assign({}, i, { fecha: f, creado: i.creado || nowIso() })); days.add(f); });
+      await Promise.all([...days].map(writeDay)); return true;
+    },
+    async updateComida(item) {
+      const f = dayOf(item.id); if (!f) return true;
+      RAW.com[f] = RAW.com[f].map(c => c.id === item.id ? Object.assign({}, c, item) : c); await writeDay(f); return true;
+    },
+    async deleteComida(id) { const f = dayOf(id); if (!f) return true; RAW.com[f] = RAW.com[f].filter(c => c.id !== id); await writeDay(f); return true; },
+    async saveAlimento(a) {
+      RAW.alimentos = RAW.alimentos.filter(r => String(r.nombre).toLowerCase() !== String(a.nombre).toLowerCase()).concat([a]);
+      await write('alimentos', () => ({ rows: RAW.alimentos })); return true;
+    },
+    async savePeso(fecha, peso) {
+      RAW.pesos = RAW.pesos.filter(r => r.fecha !== fecha).concat([{ fecha: String(fecha), peso: Number(peso) }]).sort((a, b) => a.fecha.localeCompare(b.fecha));
+      await write('pesos', () => ({ rows: RAW.pesos })); return true;
+    },
+    async deletePeso(fecha) { RAW.pesos = RAW.pesos.filter(r => r.fecha !== fecha); await write('pesos', () => ({ rows: RAW.pesos })); return true; },
+    async saveConfig(cfg) { RAW.cfg = cfg; await write('cfg', () => ({ cfg: RAW.cfg })); return true; }
+  };
+  return {
+    async call(fn, args) {
+      await init();
+      if (!API[fn]) throw new Error('Esta función solo está en la versión de Google Sheets.');
+      return API[fn](...clone(args));
+    }
+  };
+})();
+
+/* IA (solo en la versión publicada en Claude) */
+let SAMPLE = null, IMG_OK = false, DOWNLOADS = null;
+if (!GAS && window.claude && claude.use) {
+  claude.use('sample').then(s => {
+    SAMPLE = s;
+    if (s) s.limits().then(l => { IMG_OK = !!(l && l.images); }).catch(() => {});
+    if (s && (view === 'inicio' || view === 'perfil') && $('#sheet').classList.contains('hide') && $('#loading').classList.contains('hide')) rerender();
+  }).catch(() => {});
+  claude.use('downloads').then(d => { DOWNLOADS = d; }).catch(() => {});
+}
+function aiErr(e) {
+  const c = e && e.code;
+  if (c === 'not_granted' || c === 'sampling_disabled' || c === 'not_declared') { SAMPLE = null; return 'La IA no está habilitada para esta app.'; }
+  if (c === 'rate_limited') return 'Muchas consultas seguidas. Probá en un rato.';
+  if (c === 'invalid_json' || c === 'empty_completion') return 'No pude interpretar la respuesta. Probá describirlo de otra forma.';
+  if (c === 'image_rejected' || c === 'images_unavailable') return 'No pude usar esa foto. Probá con otra o describilo con texto.';
+  if (c === 'cancelled') return '';
+  return 'La IA no respondió. Probá de nuevo.';
 }
 const errMsg = e => esc((e && e.message) || e);
 function ring(pct, color, size, inner) {
@@ -494,6 +600,8 @@ function renderInicio() {
         <div class="small mut">${esc(comparacion(tonelaje))}</div>
       </div>
     </div>
+
+    ${coachCard()}
 
     ${prs.length ? `<div class="card"><h2>🏆 Récords recientes</h2>${prs.slice(0, 5).map(p => `<div class="item" style="cursor:default">
       <span class="grow">${esc(p.ej)}</span><span class="k volt">${fmt(p.peso)} kg</span><span class="small mut">${esc(fmtDate(p.fecha))}</span></div>`).join('')}</div>` : ''}
@@ -836,9 +944,10 @@ function openFood(comida) {
   FS = { comida, q: '', list: [], online: [], buscando: false };
   openSheet(`
     <div class="row" style="margin-bottom:10px"><h2 class="grow" style="margin:0">${esc(comida)}</h2><button class="btn sec" onclick="closeSheet()">✕</button></div>
-    <input id="fq" placeholder="Buscar alimento o código de barras…" oninput="FS.q=this.value;renderFoodList()" autocomplete="off">
+    <input id="fq" placeholder="${GAS ? 'Buscar alimento o código de barras…' : 'Buscar alimento…'}" oninput="FS.q=this.value;renderFoodList()" autocomplete="off">
     <div class="chips" style="margin:10px 0">
-      <button class="chip" onclick="searchOnline()">🌐 Buscar online</button>
+      ${SAMPLE ? `<button class="chip on" onclick="aiFoodForm()">🤖 Describir o foto</button>` : ''}
+      ${GAS ? `<button class="chip" onclick="searchOnline()">🌐 Buscar online</button>` : ''}
       <button class="chip" onclick="createFoodForm()">✚ Crear</button>
       <button class="chip" onclick="quickKcal()">⚡ Calorías rápidas</button>
     </div>
@@ -854,7 +963,7 @@ function renderFoodList() {
     <div class="small mut">${fmt(f.kcal, 0)} kcal · P ${fmt(f.prot, 0)} · C ${fmt(f.carb, 0)} · G ${fmt(f.grasa, 0)} <span style="opacity:.6">/100 g</span>${f.src === 'reciente' ? ' · 🕘' : f.src === 'propio' ? ' · ⭐' : ''}</div></div><span class="mut">›</span></div>`;
   $('#foodList').innerHTML =
     `<div class="eyebrow" style="margin:6px 0">${q ? 'Resultados' : 'Recientes'}</div>` +
-    (FS.list.map((f, i) => row(f, i, 'l')).join('') || `<div class="empty small">Nada en tu base. Probá “Buscar online”${/^\d{8,14}$/.test(q) ? ' (código de barras)' : ''} o creá el alimento.</div>`) +
+    (FS.list.map((f, i) => row(f, i, 'l')).join('') || `<div class="empty small">Nada en tu base. Probá ${SAMPLE ? '“🤖 Describir o foto”' : GAS ? '“Buscar online”' + (/^\d{8,14}$/.test(q) ? ' (código de barras)' : '') : '“⚡ Calorías rápidas”'} o creá el alimento.</div>`) +
     (FS.buscando ? '<div class="empty">Buscando en internet…</div>' : '') +
     (FS.online.length ? '<div class="eyebrow" style="margin:14px 0 6px">🌐 Online (Open Food Facts)</div>' + FS.online.map((f, i) => row(f, i, 'o')).join('') : '');
 }
@@ -907,6 +1016,106 @@ function addComidaRows(rows, msg) {
     toast('No se pudo guardar: ' + errMsg(e), 4000);
   });
 }
+/* ---- IA: calorías desde una descripción o una foto ---- */
+function aiFoodForm() {
+  FS.aiImg = null; FS.ai = [];
+  openSheet(`
+    <div class="row" style="margin-bottom:6px"><button class="btn ghost" style="padding-left:0" onclick="backToSearch()">← Volver</button><span class="grow"></span><button class="btn sec" onclick="closeSheet()">✕</button></div>
+    <h2>🤖 ¿Qué comiste?</h2>
+    <p class="small mut" style="margin-top:-6px">Escribilo como se lo dirías a alguien${IMG_OK ? ' o sacale una foto al plato' : ''}. La IA estima cada alimento y vos confirmás.</p>
+    <textarea id="aiq" rows="3" placeholder="Ej: 2 empanadas de carne, ensalada de tomate y una coca chica">${esc(FS.q)}</textarea>
+    ${IMG_OK ? `<label class="btn sec block" style="display:block;text-align:center;margin-top:10px">📷 Sacar o elegir foto
+      <input type="file" id="aiimg" accept="image/*" hidden onchange="FS.aiImg=this.files[0]||null;$('#aiimgname').textContent=FS.aiImg?'Foto lista: '+FS.aiImg.name:''"></label>
+      <div id="aiimgname" class="small volt center" style="margin-top:6px"></div>` : ''}
+    <button class="btn block" id="aibtn" style="margin-top:12px" onclick="aiEstimate()">Calcular calorías</button>
+    <div id="aires"></div>`);
+}
+async function aiEstimate() {
+  const txt = $('#aiq').value.trim(), img = FS.aiImg;
+  if (!txt && !img) return toast('Describí lo que comiste' + (IMG_OK ? ' o subí una foto' : ''));
+  const btn = $('#aibtn'); btn.disabled = true; btn.textContent = 'Pensando…';
+  const prompt = 'Sos nutricionista deportivo. Identificá cada alimento ' + (img ? 'que se ve en la foto' : '') + (img && txt ? ' y ' : '') +
+    (txt ? 'de esta descripción: "' + txt.slice(0, 600) + '"' : '') + '.\n' +
+    'Si no se indican cantidades, usá porciones típicas de Latinoamérica. Estimá la porción consumida (no por 100 g).\n' +
+    'Respondé SOLO con un JSON array, un objeto por alimento, números redondeados:\n' +
+    '[{"nombre":"Empanada de carne","gramos":90,"kcal":260,"prot":10,"carb":25,"grasa":13}]\n' +
+    'Si no es comida o no se puede identificar, respondé [].';
+  const opts = { modelTier: 'quick' };
+  if (img) opts.images = [img];
+  try {
+    const r = await SAMPLE.json(prompt, opts);
+    FS.ai = (Array.isArray(r) ? r : []).filter(x => x && x.nombre).slice(0, 15).map(x => ({
+      nombre: String(x.nombre).slice(0, 80), gramos: Math.max(0, Math.round(num(x.gramos))), kcal: Math.max(0, Math.round(num(x.kcal))),
+      prot: +num(x.prot).toFixed(1), carb: +num(x.carb).toFixed(1), grasa: +num(x.grasa).toFixed(1) }));
+    if (!FS.ai.length) toast('No identifiqué comida ahí. Probá describirlo con más detalle.');
+    renderAiRes();
+  } catch (e) { const m = aiErr(e); if (m) toast(m, 4000); }
+  if ($('#aibtn')) { $('#aibtn').disabled = false; $('#aibtn').textContent = FS.ai.length ? 'Recalcular' : 'Calcular calorías'; }
+}
+function renderAiRes() {
+  const it = FS.ai || [];
+  if (!it.length) { $('#aires').innerHTML = ''; return; }
+  $('#aires').innerHTML = `<div class="card" style="margin-top:14px">
+    ${it.map((x, i) => `<div class="item" style="cursor:default"><div class="grow"><div>${esc(x.nombre)}</div>
+      <div class="small mut">${x.gramos ? x.gramos + ' g · ' : ''}P ${fmt(x.prot, 0)} · C ${fmt(x.carb, 0)} · G ${fmt(x.grasa, 0)}</div></div>
+      <span class="k">${x.kcal}</span><button class="btn danger" onclick="FS.ai.splice(${i},1);renderAiRes()">✕</button></div>`).join('')}
+    <div class="row" style="margin-top:10px"><b class="grow">Total</b><b class="hot">${sum(it, x => x.kcal)} kcal</b></div></div>
+    <label class="f">Comida</label><select id="aim">${COMIDAS.map(m => `<option ${m === FS.comida ? 'selected' : ''}>${m}</option>`).join('')}</select>
+    <button class="btn block" style="margin-top:12px" onclick="addAiFoods()">Agregar ${it.length} alimento${it.length > 1 ? 's' : ''}</button>
+    <p class="small mut center">Es una estimación. Tocá cada alimento después para ajustar los gramos.</p>`;
+}
+function addAiFoods() {
+  const comida = $('#aim').value;
+  addComidaRows(FS.ai.map(x => ({ id: uid(), fecha: foodDate, comida, alimento: x.nombre, gramos: x.gramos, kcal: x.kcal, prot: x.prot, carb: x.carb, grasa: x.grasa })),
+    '🤖 ' + FS.ai.length + ' alimentos · ' + sum(FS.ai, x => x.kcal) + ' kcal');
+  closeSheet();
+}
+
+/* ---- IA: coach que analiza tus últimas 4 semanas ---- */
+let coachCtl = null;
+async function coach() {
+  const out = $('#coachOut'), btn = $('#coachBtn'); if (!out || !SAMPLE) return;
+  if (coachCtl) { coachCtl.abort(); return; }
+  const c = DB.cfg, T = targets(), goal = num(c.entrenosSemana) || 3, since = addDays(todayStr(), -28);
+  const ses = sessions.filter(s => s.fecha >= since).reverse().map(s => s.fecha + ' ' + (s.dia || 'Libre') + ': ' +
+    s.ejercicios.map(e => e.nombre + ' ' + e.sets.map(x => x.peso + 'x' + x.reps).join(',')).join(' | ')).join('\n');
+  const com = []; for (let i = 13; i >= 0; i--) { const f = addDays(todayStr(), -i), t = dayTotals(f); if (t.n) com.push(f + ': ' + Math.round(t.kcal) + ' kcal, ' + Math.round(t.prot) + ' g proteína'); }
+  const pes = DB.pesos.filter(p => p.fecha >= since).map(p => p.fecha + ': ' + p.peso + ' kg').join(', ');
+  const prompt = 'Sos el coach de HIERRO, una app de gym. Hablás en español latino, directo, con energía y sin vueltas, como un buen entrenador. ' +
+    'Analizá los datos de las últimas 4 semanas y respondé en texto plano (sin tablas ni títulos markdown), máximo 170 palabras, con este formato:\n' +
+    'Una línea de veredicto.\n• Lo que viene bien (1-2 viñetas)\n• Lo que hay que corregir (1-2 viñetas)\n• 3 acciones concretas para esta semana, con números (kg, reps, kcal, proteína).\n' +
+    'Si faltan datos, decilo y pedí registrarlos.\n\n' +
+    `Perfil: objetivo ${c.objetivo || 'mantener'}, meta ${goal} entrenamientos por semana, objetivo ${T.kcal} kcal y ${T.prot} g de proteína por día. Hoy es ${todayStr()}.\n` +
+    'Entrenamientos (peso x reps por serie):\n' + (ses || 'ninguno registrado') + '\n\nComida (días registrados):\n' + (com.join('\n') || 'nada registrado') +
+    '\n\nPeso corporal: ' + (pes || 'sin registros');
+  coachCtl = new AbortController();
+  btn.textContent = 'Detener'; out.textContent = 'Analizando tus semanas…'; out.classList.add('mut');
+  try {
+    await SAMPLE(prompt.slice(0, 60000), { cache: false, signal: coachCtl.signal, onText: ({ text }) => { out.classList.remove('mut'); out.textContent = text; } });
+  } catch (e) { const m = aiErr(e); out.textContent = (e && e.text) || ''; if (m) toast(m, 4000); }
+  coachCtl = null; if ($('#coachBtn')) $('#coachBtn').textContent = '🤖 Analizar de nuevo';
+}
+function coachCard() {
+  return SAMPLE ? `<div class="card"><div class="eyebrow">🤖 Coach IA</div>
+    <p class="small mut" style="margin:4px 0 10px">Lee tus entrenamientos, comidas y peso de las últimas 4 semanas y te dice qué ajustar.</p>
+    <div id="coachOut" style="white-space:pre-wrap;margin-bottom:10px"></div>
+    <button class="btn block" id="coachBtn" onclick="coach()">🤖 Analizar mis últimas 4 semanas</button></div>` : '';
+}
+
+/* ---- Respaldo de datos (versión Claude) ---- */
+async function exportData(kind) {
+  if (!DOWNLOADS) return toast('Descargas no disponibles acá');
+  const d = todayStr();
+  let filename, data;
+  if (kind === 'json') { filename = 'hierro-respaldo-' + d + '.json'; data = JSON.stringify({ rutina: DB.rutina, registros: DB.registros, comidas: DB.comidas, alimentos: DB.alimentos, pesos: DB.pesos, cfg: DB.cfg }, null, 1); }
+  else {
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const rows = [['fecha', 'dia', 'ejercicio', 'serie', 'peso', 'reps', 'rpe']].concat(DB.registros.slice().sort((a, b) => String(a.fecha).localeCompare(b.fecha)).map(r => [r.fecha, r.dia, r.ejercicio, r.serie, r.peso, r.reps, r.rpe]));
+    filename = 'hierro-series-' + d + '.csv'; data = rows.map(r => r.map(q).join(',')).join('\n');
+  }
+  try { await DOWNLOADS.save({ filename, data }); } catch (e) { if (e && e.code !== 'cancelled' && e.code !== 'declined') toast('No se pudo descargar', 3000); }
+}
+
 function createFoodForm() {
   openSheet(`
     <div class="row"><h2 class="grow" style="margin:0">Crear alimento</h2><button class="btn sec" onclick="closeSheet()">✕</button></div>
@@ -1099,7 +1308,11 @@ function renderPerfil() {
       ${num(c.kcalAjuste) ? `<div class="center"><button class="btn ghost small" onclick="DB.cfg.kcalAjuste=0;saveCfg().then(renderPerfil)">Resetear ajuste automático</button></div>` : ''}
     </div>
 
-    <div class="card"><h2>🤖 Automatizaciones</h2>
+    ${GAS ? '' : `<div class="card"><h2>🤖 Automático</h2>
+      <p class="small mut" style="margin-top:-6px">La app ya hace sola: sugerencia de peso por ejercicio, detección de récords, grupo muscular de cada ejercicio y ajuste de calorías según tu peso real.${SAMPLE ? ' El Coach IA está en Inicio.' : ''}</p>
+      ${DOWNLOADS ? `<div class="row"><button class="btn sec grow" onclick="exportData('json')">⬇ Respaldo completo</button><button class="btn sec grow" onclick="exportData('csv')">⬇ Series (CSV)</button></div>` : ''}
+      <p class="small mut">Tus datos se guardan en tu cuenta de Claude, privados: solo vos los ves.</p></div>`}
+    <div class="card${GAS ? '' : ' hide'}"><h2>🤖 Automatizaciones</h2>
       <p class="small mut" style="margin-top:-6px">Corren solas en los servidores de Google aunque no abras la app. Te llegan por mail.</p>
       <div class="item" style="cursor:default"><div class="grow"><b>Reporte semanal</b><div class="small mut">Lunes 8 am: entrenos, volumen, récords, calorías y peso.</div></div>
         <label class="switch"><input type="checkbox" id="aSem" ${a.semanal ? 'checked' : ''}><i></i></label></div>

@@ -1,0 +1,1385 @@
+<title>HIERRO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #09090b; --card: #131316; --card2: #1c1c21; --line: #27272e;
+    --tx: #f5f5f7; --mut: #8b8b96; --acc: #ff3d00; --acc2: #ff0055; --volt: #c8ff00; --bad: #ff4d4d;
+    --p: #4fc3ff; --c: #ffb800; --g: #ff5ca8;
+    --grad: linear-gradient(135deg, #ff3d00 0%, #ff0055 100%);
+    --r: 16px; --disp: 'Anton', Impact, 'Arial Narrow Bold', sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--tx); font: 15px/1.4 Inter, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+  body { padding-bottom: 88px; }
+  header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: rgba(9, 9, 11, .92); backdrop-filter: blur(10px);
+    padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+  .logo { font-family: var(--disp); font-size: 26px; letter-spacing: 2px; background: var(--grad);
+    -webkit-background-clip: text; background-clip: text; color: transparent; line-height: 1; }
+  .streak { font-family: var(--disp); font-size: 18px; letter-spacing: 1px; display: flex; align-items: center; gap: 4px; }
+  main { padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); max-width: 720px; margin: 0 auto; }
+  nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 6; display: flex; background: #0e0e11;
+    border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  nav button { flex: 1; background: none; border: 0; color: var(--mut); padding: 9px 0 11px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px; position: relative; }
+  nav button span { display: block; font-size: 21px; margin-bottom: 1px; filter: grayscale(1) opacity(.6); }
+  nav button.on { color: var(--tx); }
+  nav button.on span { filter: none; }
+  nav button.on::before { content: ''; position: absolute; top: 0; left: 30%; right: 30%; height: 3px; background: var(--grad); border-radius: 0 0 3px 3px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; margin-bottom: 12px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .grow { flex: 1; min-width: 0; }
+  .mut { color: var(--mut); }
+  .small { font-size: 12px; }
+  .center { text-align: center; }
+  h2 { font-family: var(--disp); font-weight: 400; font-size: 22px; letter-spacing: 1px; text-transform: uppercase; margin: 2px 0 10px; }
+  h3 { font-size: 16px; font-weight: 700; margin: 0; }
+  .big { font-family: var(--disp); font-size: 34px; line-height: 1; letter-spacing: .5px; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--mut); }
+  .volt { color: var(--volt); } .hot { color: var(--acc); } .neg { color: var(--bad); }
+
+  input, select, textarea { width: 100%; background: var(--card2); color: var(--tx); border: 1px solid var(--line);
+    border-radius: 10px; padding: 11px; font-size: 16px; font-family: inherit; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--acc); border-color: transparent; }
+  label.f { display: block; font-size: 12px; color: var(--mut); margin: 10px 0 4px; font-weight: 600; }
+  button { font-family: inherit; cursor: pointer; }
+  .btn { background: var(--grad); color: #fff; border: 0; border-radius: 12px; padding: 13px 16px; font-size: 15px;
+    font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
+  .btn:active { transform: scale(.98); }
+  .btn.sec { background: var(--card2); color: var(--tx); border: 1px solid var(--line); text-transform: none; letter-spacing: 0; font-weight: 600; }
+  .btn.ghost { background: none; color: var(--acc); padding: 8px; text-transform: none; letter-spacing: 0; font-weight: 600; }
+  .btn.danger { background: none; color: var(--bad); padding: 8px; text-transform: none; letter-spacing: 0; font-weight: 600; }
+  .btn.block { width: 100%; }
+  .btn:disabled { opacity: .5; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { background: var(--card2); border: 1px solid var(--line); color: var(--tx); border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 600; }
+  .chip.on { background: var(--tx); border-color: var(--tx); color: var(--bg); }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 6px; background: var(--card2); color: var(--mut); }
+  .tag.up { background: var(--volt); color: #000; }
+  .tag.keep { background: rgba(255, 184, 0, .15); color: var(--c); }
+  .hide { display: none !important; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .grid2 .card { margin: 0; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+  /* Hero */
+  .hero { position: relative; overflow: hidden; border-radius: var(--r); padding: 18px 16px; margin-bottom: 12px;
+    background: repeating-linear-gradient(-45deg, rgba(255,255,255,.025) 0 10px, transparent 10px 20px), linear-gradient(135deg, #1a0a06, #120612);
+    border: 1px solid #3a1a12; }
+  .hero::after { content: ''; position: absolute; right: -40px; top: -40px; width: 160px; height: 160px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 61, 0, .35), transparent 70%); }
+  .hero .frase { font-family: var(--disp); font-size: 30px; line-height: 1.05; text-transform: uppercase; letter-spacing: .5px; margin: 6px 0 14px; position: relative; z-index: 1; }
+
+  /* Entrenamiento */
+  .sets { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .sets th { color: var(--mut); font-weight: 700; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; text-align: center; padding: 4px 2px; }
+  .sets td { padding: 3px 2px; text-align: center; }
+  .sets td:first-child { width: 26px; font-weight: 800; color: var(--mut); }
+  .sets td.prev { color: var(--mut); font-size: 12px; width: 64px; }
+  .sets input { padding: 9px 2px; text-align: center; font-weight: 700; }
+  .sets tr.done td:first-child { color: var(--volt); }
+  .sets tr.done input { background: rgba(200, 255, 0, .08); border-color: rgba(200, 255, 0, .35); }
+  .check { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--card2); color: var(--mut); font-size: 18px; font-weight: 900; }
+  tr.done .check { background: var(--volt); border-color: var(--volt); color: #000; }
+  .live { position: sticky; top: 51px; z-index: 4; display: grid; grid-template-columns: repeat(3, 1fr); text-align: center;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 6px; margin-bottom: 12px; }
+  .live b { font-family: var(--disp); font-size: 22px; font-weight: 400; display: block; }
+  .ex-edit { display: grid; grid-template-columns: 1fr 52px 66px 52px 28px; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .ex-edit input { padding: 9px 6px; font-size: 15px; }
+  .ex-edit .x { background: none; border: 0; color: var(--bad); font-size: 18px; }
+
+  /* Listas / tablas */
+  table.list { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.list th, table.list td { padding: 9px 4px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  table.list th { color: var(--mut); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  .item { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .item:last-child { border-bottom: 0; }
+  .item .k { font-weight: 800; white-space: nowrap; }
+  details summary { cursor: pointer; list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  .empty { text-align: center; color: var(--mut); padding: 22px 8px; }
+
+  /* Barras */
+  .bar { height: 8px; background: var(--card2); border-radius: 99px; overflow: hidden; margin-top: 5px; }
+  .bar i { display: block; height: 100%; border-radius: 99px; }
+  .mrow { margin-bottom: 10px; }
+  .mrow .row { font-size: 13px; }
+  .musc { position: relative; height: 22px; background: var(--card2); border-radius: 6px; overflow: hidden; }
+  .musc .zone { position: absolute; top: 0; bottom: 0; background: rgba(200, 255, 0, .08); border-left: 1px dashed rgba(200,255,0,.4); border-right: 1px dashed rgba(200,255,0,.4); }
+  .musc i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--grad); border-radius: 6px; }
+  .musc span { position: absolute; right: 8px; top: 2px; font-size: 12px; font-weight: 800; }
+
+  /* Ring */
+  .ring { position: relative; margin: 0 auto; flex: none; }
+  .ring svg { transform: rotate(-90deg); display: block; }
+  .ring circle { transition: stroke-dashoffset .6s ease-out; }
+  .ring .lbl { position: absolute; inset: 0; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+  /* Hoja inferior (modal) */
+  #sheet { position: fixed; inset: 0; z-index: 30; background: rgba(0, 0, 0, .7); display: flex; align-items: flex-end; justify-content: center; }
+  #sheetBody { background: var(--bg); border: 1px solid var(--line); border-bottom: 0; border-radius: 20px 20px 0 0; width: 100%; max-width: 720px;
+    max-height: 92vh; overflow-y: auto; padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); animation: up .2s ease-out; }
+  @keyframes up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .switch { position: relative; width: 48px; height: 28px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch i { position: absolute; inset: 0; background: var(--card2); border: 1px solid var(--line); border-radius: 99px; transition: .2s; }
+  .switch i::after { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: var(--mut); border-radius: 50%; transition: .2s; }
+  .switch input:checked + i { background: var(--acc); border-color: var(--acc); }
+  .switch input:checked + i::after { transform: translateX(20px); background: #fff; }
+
+  #timer { position: fixed; left: 12px; right: 12px; bottom: 82px; z-index: 7; background: var(--grad); color: #fff;
+    border-radius: var(--r); padding: 10px 14px; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 30px rgba(255, 61, 0, .35); }
+  #timer b { font-family: var(--disp); font-weight: 400; font-size: 28px; font-variant-numeric: tabular-nums; }
+  #timer button { background: rgba(0, 0, 0, .25); color: #fff; border: 0; border-radius: 8px; padding: 7px 10px; font-size: 14px; font-weight: 700; }
+  #toast { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 40; background: var(--card2);
+    border: 1px solid var(--line); border-left: 4px solid var(--acc); padding: 12px 16px; border-radius: 12px; max-width: 92%;
+    text-align: center; font-weight: 600; box-shadow: 0 8px 30px rgba(0, 0, 0, .5); transition: opacity .3s; }
+  #toast.pr { border-left-color: var(--volt); }
+  #loading { position: fixed; inset: 0; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; background: var(--bg); z-index: 50; }
+  #loading .logo { font-size: 52px; }
+  .canvas-wrap { position: relative; height: 230px; }
+</style>
+
+
+<div id="loading"><div class="logo">HIERRO</div><div class="mut">Calentando…</div></div>
+<header><div class="logo">HIERRO</div><div class="streak" id="hdrStreak"></div></header>
+
+<main>
+  <section id="v-inicio"></section>
+  <section id="v-entrenar" class="hide"></section>
+  <section id="v-comida" class="hide"></section>
+  <section id="v-progreso" class="hide"></section>
+  <section id="v-perfil" class="hide"></section>
+</main>
+
+<div id="sheet" class="hide" onclick="if(event.target===this)closeSheet()"><div id="sheetBody"></div></div>
+<div id="timer" class="hide">
+  <span>⏱</span><b id="timerTxt">1:30</b><span class="grow small">DESCANSO</span>
+  <button onclick="timerAdd(-15)">−15</button><button onclick="timerAdd(15)">+15</button><button onclick="timerStop()">✕</button>
+</div>
+<div id="toast" class="hide"></div>
+
+<nav>
+  <button data-v="inicio" class="on"><span>🔥</span>Inicio</button>
+  <button data-v="entrenar"><span>🏋️</span>Entrenar</button>
+  <button data-v="comida"><span>🍗</span>Comida</button>
+  <button data-v="progreso"><span>📈</span>Progreso</button>
+  <button data-v="perfil"><span>👤</span>Perfil</button>
+</nav>
+
+<script>
+/* =====================================================================
+   UTILIDADES
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; };
+const fmt = (n, d) => { const f = Math.pow(10, d == null ? 1 : d); return (Math.round(n * f) / f).toLocaleString('es'); };
+const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const todayStr = () => ymd(new Date());
+const parseDate = s => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = parseDate(s); d.setDate(d.getDate() + n); return ymd(d); };
+const daysBetween = (a, b) => Math.round((parseDate(b) - parseDate(a)) / 86400000);
+const fmtDate = s => parseDate(s).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
+const weekStart = s => { const d = parseDate(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return ymd(d); };
+const e1rm = (p, r) => r <= 0 ? 0 : (r === 1 ? p : p * (1 + r / 30)); // Epley
+const sum = (arr, f) => arr.reduce((a, x) => a + (f ? f(x) : x), 0);
+const uid = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem('hierro_' + k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem('hierro_' + k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem('hierro_' + k); } catch (e) {} }
+};
+function toast(msg, ms, pr) {
+  const t = $('#toast'); t.innerHTML = msg; t.className = pr ? 'pr' : ''; t.style.opacity = 1;
+  clearTimeout(toast._t); toast._t = setTimeout(() => { t.style.opacity = 0; setTimeout(() => t.classList.add('hide'), 300); }, ms || 2500);
+}
+/* Backend: Google Apps Script (google.script.run) o, publicada en Claude, el almacenamiento privado del artifact */
+const GAS = !!(window.google && google.script && google.script.run);
+function call(fn, ...args) {
+  if (!GAS) return LocalAPI.call(fn, args);
+  return new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+}
+const LocalAPI = (() => {
+  let C = null, RAW = null, ready = null;
+  const queue = {};
+  const nowIso = () => new Date().toISOString().slice(0, 19);
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const timeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('No se pudo conectar con tu almacenamiento. Revisá la conexión.')), ms))]);
+  function init() {
+    if (ready) return ready;
+    ready = (async () => {
+      if (!window.claude || !claude.use) throw new Error('Abrí la app desde su link de Claude.');
+      const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+      const id = user ? await user.id() : null;
+      if (!db || !id) throw new Error('Iniciá sesión en Claude para guardar tus datos.');
+      C = db.collection('data/users/' + id);
+      const snap = await timeout(C.get(), 15000);
+      RAW = { cfg: {}, rutina: [], alimentos: [], pesos: [], ses: {}, com: {} };
+      snap.docs.forEach(d => {
+        const v = d.exists ? clone(d.data()) : null; if (!v) return;
+        if (d.id === 'cfg') RAW.cfg = v.cfg || {};
+        else if (d.id === 'rutina') RAW.rutina = v.rows || [];
+        else if (d.id === 'alimentos') RAW.alimentos = v.rows || [];
+        else if (d.id === 'pesos') RAW.pesos = v.rows || [];
+        else if (d.id.startsWith('ses_') && v.id) RAW.ses[v.id] = v;
+        else if (d.id.startsWith('com_') && v.fecha) RAW.com[v.fecha] = v.items || [];
+      });
+    })();
+    ready.catch(() => { ready = null; });
+    return ready;
+  }
+  // Una escritura a la vez por documento; el contenido se arma al momento de escribir
+  function write(key, build) {
+    queue[key] = (queue[key] || Promise.resolve()).catch(() => {}).then(() => {
+      const data = build();
+      return data ? C.doc(key).set(data) : C.doc(key).delete();
+    });
+    return queue[key];
+  }
+  const writeDay = f => write('com_' + f, () => (RAW.com[f] && RAW.com[f].length) ? { tipo: 'com', fecha: f, items: RAW.com[f] } : null);
+  const dayOf = id => Object.keys(RAW.com).find(f => RAW.com[f].some(c => c.id === id));
+  const API = {
+    getData: () => clone({
+      rutina: RAW.rutina, alimentos: RAW.alimentos, pesos: RAW.pesos, cfg: RAW.cfg, sheetUrl: null,
+      registros: Object.values(RAW.ses).flatMap(s => (s.sets || []).map(x => Object.assign({ sesionId: s.id, fecha: s.fecha, dia: s.dia, notas: s.notas, creado: s.creado }, x))),
+      comidas: Object.values(RAW.com).flat()
+    }),
+    async saveRutina(rows) { RAW.rutina = rows || []; await write('rutina', () => ({ rows: RAW.rutina })); return API.getData(); },
+    async saveSesion(s) {
+      const id = s.sesionId || uid();
+      if (!(s.sets || []).length) throw new Error('No hay series para guardar');
+      RAW.ses[id] = { tipo: 'ses', id, fecha: String(s.fecha), dia: s.dia || '', notas: s.notas || '', creado: nowIso(),
+        sets: s.sets.map(x => ({ ejercicio: x.ejercicio, serie: Number(x.serie) || 1, peso: Number(x.peso) || 0, reps: Number(x.reps) || 0, rpe: x.rpe === '' || x.rpe == null ? '' : Number(x.rpe) })) };
+      await write('ses_' + id, () => RAW.ses[id] || null); return API.getData();
+    },
+    async deleteSesion(id) { delete RAW.ses[id]; await write('ses_' + id, () => RAW.ses[id] || null); return API.getData(); },
+    async addComidas(items) {
+      const days = new Set();
+      items.forEach(i => { const f = String(i.fecha); (RAW.com[f] = RAW.com[f] || []).push(Object.assign({}, i, { fecha: f, creado: i.creado || nowIso() })); days.add(f); });
+      await Promise.all([...days].map(writeDay)); return true;
+    },
+    async updateComida(item) {
+      const f = dayOf(item.id); if (!f) return true;
+      RAW.com[f] = RAW.com[f].map(c => c.id === item.id ? Object.assign({}, c, item) : c); await writeDay(f); return true;
+    },
+    async deleteComida(id) { const f = dayOf(id); if (!f) return true; RAW.com[f] = RAW.com[f].filter(c => c.id !== id); await writeDay(f); return true; },
+    async saveAlimento(a) {
+      RAW.alimentos = RAW.alimentos.filter(r => String(r.nombre).toLowerCase() !== String(a.nombre).toLowerCase()).concat([a]);
+      await write('alimentos', () => ({ rows: RAW.alimentos })); return true;
+    },
+    async savePeso(fecha, peso) {
+      RAW.pesos = RAW.pesos.filter(r => r.fecha !== fecha).concat([{ fecha: String(fecha), peso: Number(peso) }]).sort((a, b) => a.fecha.localeCompare(b.fecha));
+      await write('pesos', () => ({ rows: RAW.pesos })); return true;
+    },
+    async deletePeso(fecha) { RAW.pesos = RAW.pesos.filter(r => r.fecha !== fecha); await write('pesos', () => ({ rows: RAW.pesos })); return true; },
+    async saveConfig(cfg) { RAW.cfg = cfg; await write('cfg', () => ({ cfg: RAW.cfg })); return true; }
+  };
+  return {
+    async call(fn, args) {
+      await init();
+      if (!API[fn]) throw new Error('Esta función solo está en la versión de Google Sheets.');
+      return API[fn](...clone(args));
+    }
+  };
+})();
+
+/* IA (solo en la versión publicada en Claude) */
+let SAMPLE = null, IMG_OK = false, DOWNLOADS = null;
+if (!GAS && window.claude && claude.use) {
+  claude.use('sample').then(s => {
+    SAMPLE = s;
+    if (s) s.limits().then(l => { IMG_OK = !!(l && l.images); }).catch(() => {});
+    if (s && (view === 'inicio' || view === 'perfil') && $('#sheet').classList.contains('hide') && $('#loading').classList.contains('hide')) rerender();
+  }).catch(() => {});
+  claude.use('downloads').then(d => { DOWNLOADS = d; }).catch(() => {});
+}
+function aiErr(e) {
+  const c = e && e.code;
+  if (c === 'not_granted' || c === 'sampling_disabled' || c === 'not_declared') { SAMPLE = null; return 'La IA no está habilitada para esta app.'; }
+  if (c === 'rate_limited') return 'Muchas consultas seguidas. Probá en un rato.';
+  if (c === 'invalid_json' || c === 'empty_completion') return 'No pude interpretar la respuesta. Probá describirlo de otra forma.';
+  if (c === 'image_rejected' || c === 'images_unavailable') return 'No pude usar esa foto. Probá con otra o describilo con texto.';
+  if (c === 'cancelled') return '';
+  return 'La IA no respondió. Probá de nuevo.';
+}
+const errMsg = e => esc((e && e.message) || e);
+function ring(pct, color, size, inner) {
+  const r = (size - 12) / 2, c = 2 * Math.PI * r, p = Math.max(0, Math.min(1, pct));
+  return `<div class="ring" style="width:${size}px;height:${size}px"><svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" stroke="#1c1c21" stroke-width="10" fill="none"/>
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - p)}"/></svg>
+    <div class="lbl">${inner}</div></div>`;
+}
+const charts = {};
+function mkChart(id, cfg) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  const el = document.getElementById(id);
+  if (!el || !window.Chart) return;
+  charts[id] = new Chart(el, cfg);
+}
+function chartOpts(extra) {
+  return Object.assign({ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+    scales: { x: { ticks: { color: '#8b8b96', maxRotation: 0, autoSkipPadding: 12 }, grid: { color: '#1c1c21' } },
+      y: { ticks: { color: '#8b8b96' }, grid: { color: '#1c1c21' } } } }, extra || {});
+}
+if (window.Chart) { Chart.defaults.font.family = 'Inter, sans-serif'; Chart.defaults.color = '#8b8b96'; }
+
+/* =====================================================================
+   PERSONALIDAD
+   ===================================================================== */
+const FRASES = ['El hierro no miente.', 'Hoy no se negocia.', 'Nadie va a levantar ese peso por vos.', 'Disciplina > motivación.',
+  'Menos excusas. Más series.', 'Duele hoy. Sirve mañana.', 'El sofá no te va a dar nada.', 'Cada serie cuenta. Cada gramo también.',
+  'Lo cómodo no construye nada.', 'Vos contra vos de la semana pasada.', 'Ganas o no ganas, se entrena igual.', 'Hambre de progreso.'];
+const FRASES_FIN = ['BESTIA. Sesión guardada.', 'Eso es. Una más en la cuenta.', 'Hecho. Ahora a comer bien.', 'Sesión destruida. 💀', 'Así se construye.'];
+const pick = (arr, seed) => arr[(seed == null ? Math.floor(Math.random() * 1e6) : seed) % arr.length];
+const dayOfYear = () => Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+const TONELAJE = [[150000, 'ballenas azules', '🐋'], [6000, 'elefantes', '🐘'], [1500, 'autos', '🚗'], [400, 'pianos', '🎹'], [80, 'personas', '🧍']];
+function comparacion(kg) {
+  for (const [u, n, e] of TONELAJE) if (kg >= u) return `= ${fmt(kg / u)} ${n} ${e}`;
+  return 'Recién empezás. Dale.';
+}
+
+/* =====================================================================
+   BASE DE ALIMENTOS (por 100 g): nombre, kcal, prot, carb, grasa, porción g, etiqueta
+   ===================================================================== */
+const LOCAL_FOODS = [
+  ['Pechuga de pollo (cocida)', 165, 31, 0, 3.6, 150, 'porción'], ['Muslo de pollo (cocido)', 209, 26, 0, 11, 120, 'muslo'],
+  ['Carne vacuna magra (cocida)', 217, 30, 0, 10, 150, 'porción'], ['Carne picada común (cocida)', 270, 25, 0, 19, 150, 'porción'],
+  ['Asado / tira (cocido)', 330, 24, 0, 26, 200, 'porción'], ['Bife de chorizo (cocido)', 250, 27, 0, 15, 250, 'bife'],
+  ['Lomo de cerdo (cocido)', 143, 26, 0, 3.5, 150, 'porción'], ['Milanesa de carne (frita)', 280, 18, 14, 17, 150, 'unidad'],
+  ['Milanesa de pollo (al horno)', 220, 22, 12, 9, 150, 'unidad'], ['Hamburguesa de carne', 254, 17, 0, 20, 110, 'medallón'],
+  ['Atún al agua', 116, 26, 0, 1, 120, 'lata'], ['Salmón (cocido)', 208, 20, 0, 13, 150, 'porción'], ['Merluza (cocida)', 90, 19, 0, 1.3, 150, 'porción'],
+  ['Huevo entero', 155, 13, 1.1, 11, 50, 'unidad'], ['Clara de huevo', 52, 11, 0.7, 0.2, 33, 'clara'],
+  ['Jamón cocido', 145, 21, 1.5, 6, 30, 'feta'], ['Pechuga de pavo (fiambre)', 104, 17, 4, 2, 30, 'feta'],
+  ['Proteína whey', 400, 80, 8, 6, 30, 'scoop'], ['Barrita proteica', 350, 30, 35, 10, 60, 'unidad'],
+  ['Leche entera', 61, 3.2, 4.8, 3.3, 250, 'vaso'], ['Leche descremada', 35, 3.4, 5, 0.1, 250, 'vaso'],
+  ['Yogur natural', 61, 3.5, 4.7, 3.3, 190, 'pote'], ['Yogur griego', 97, 9, 3.6, 5, 170, 'pote'], ['Yogur bebible descremado', 45, 3, 7, 0.5, 200, 'vaso'],
+  ['Queso cottage', 98, 11, 3.4, 4.3, 100, 'porción'], ['Ricota', 174, 11, 3, 13, 50, 'porción'], ['Queso mozzarella', 280, 28, 3, 17, 30, 'feta'],
+  ['Queso cremoso', 300, 20, 2, 24, 30, 'porción'], ['Queso rallado', 431, 38, 4, 29, 10, 'cda'],
+  ['Arroz blanco (cocido)', 130, 2.7, 28, 0.3, 150, 'taza'], ['Arroz integral (cocido)', 112, 2.6, 23, 0.9, 150, 'taza'],
+  ['Fideos (cocidos)', 158, 5.8, 31, 0.9, 200, 'plato'], ['Avena', 389, 17, 66, 6.9, 40, '½ taza'], ['Granola', 471, 10, 64, 20, 40, 'porción'],
+  ['Quinoa (cocida)', 120, 4.4, 21, 1.9, 150, 'taza'], ['Pan blanco / francés', 270, 9, 52, 3, 60, 'pancito'], ['Pan lactal', 265, 9, 49, 3.2, 25, 'rebanada'],
+  ['Pan integral', 247, 13, 41, 3.4, 30, 'rebanada'], ['Tortilla de trigo', 312, 8, 52, 8, 45, 'unidad'], ['Tortilla de maíz', 218, 5.7, 45, 2.9, 30, 'unidad'],
+  ['Galletas de arroz', 387, 8, 81, 2.8, 9, 'unidad'], ['Papa (hervida)', 87, 1.9, 20, 0.1, 200, 'unidad'], ['Batata / camote (hervida)', 86, 1.6, 20, 0.1, 200, 'unidad'],
+  ['Papas fritas', 312, 3.4, 41, 15, 150, 'porción'], ['Lentejas (cocidas)', 116, 9, 20, 0.4, 150, 'taza'], ['Garbanzos (cocidos)', 164, 8.9, 27, 2.6, 150, 'taza'],
+  ['Porotos / frijoles (cocidos)', 132, 8.9, 24, 0.5, 150, 'taza'], ['Tofu', 76, 8, 1.9, 4.8, 100, 'porción'],
+  ['Banana', 89, 1.1, 23, 0.3, 120, 'unidad'], ['Manzana', 52, 0.3, 14, 0.2, 180, 'unidad'], ['Naranja', 47, 0.9, 12, 0.1, 180, 'unidad'],
+  ['Frutillas / fresas', 32, 0.7, 7.7, 0.3, 150, 'taza'], ['Arándanos', 57, 0.7, 14, 0.3, 100, 'taza'], ['Uvas', 69, 0.7, 18, 0.2, 100, 'racimo chico'],
+  ['Mandarina', 53, 0.8, 13, 0.3, 90, 'unidad'], ['Kiwi', 61, 1.1, 15, 0.5, 75, 'unidad'], ['Durazno', 39, 0.9, 10, 0.3, 150, 'unidad'],
+  ['Palta / aguacate', 160, 2, 9, 15, 70, '½ unidad'], ['Brócoli', 34, 2.8, 7, 0.4, 100, 'taza'], ['Tomate', 18, 0.9, 3.9, 0.2, 120, 'unidad'],
+  ['Lechuga', 15, 1.4, 2.9, 0.2, 50, 'plato'], ['Zanahoria', 41, 0.9, 10, 0.2, 80, 'unidad'], ['Espinaca', 23, 2.9, 3.6, 0.4, 60, 'taza'],
+  ['Cebolla', 40, 1.1, 9, 0.1, 100, 'unidad'], ['Zapallo / calabaza', 26, 1, 6.5, 0.1, 150, 'porción'], ['Ensalada mixta', 20, 1, 4, 0.2, 150, 'plato'],
+  ['Aceite de oliva', 884, 0, 0, 100, 14, 'cda'], ['Manteca / mantequilla', 717, 0.9, 0.1, 81, 10, 'cdita'],
+  ['Mantequilla de maní', 588, 25, 20, 50, 16, 'cda'], ['Maní', 567, 26, 16, 49, 30, 'puñado'], ['Almendras', 579, 21, 22, 50, 30, 'puñado'],
+  ['Nueces', 654, 15, 14, 65, 30, 'puñado'], ['Chocolate', 546, 4.9, 61, 31, 25, 'barrita'], ['Dulce de leche', 315, 7, 55, 7.5, 20, 'cda'],
+  ['Miel', 304, 0.3, 82, 0, 21, 'cda'], ['Azúcar', 387, 0, 100, 0, 5, 'cdita'], ['Mermelada', 250, 0.4, 62, 0.1, 20, 'cda'],
+  ['Galletitas dulces', 480, 6, 68, 20, 30, '4 unidades'], ['Medialuna / croissant', 410, 8, 45, 22, 45, 'unidad'],
+  ['Pizza (muzzarella)', 266, 11, 33, 10, 120, 'porción'], ['Empanada de carne', 290, 11, 28, 15, 90, 'unidad'],
+  ['Helado', 207, 3.5, 24, 11, 100, 'bocha'], ['Gaseosa común', 42, 0, 10.6, 0, 355, 'lata'], ['Jugo de naranja', 45, 0.7, 10, 0.2, 250, 'vaso'],
+  ['Cerveza', 43, 0.5, 3.6, 0, 355, 'lata'], ['Vino tinto', 85, 0.1, 2.6, 0, 150, 'copa'], ['Bebida isotónica', 24, 0, 6, 0, 500, 'botella'],
+  ['Café con leche', 40, 2, 3.5, 2, 200, 'taza']
+].map(a => ({ nombre: a[0], kcal: a[1], prot: a[2], carb: a[3], grasa: a[4], porcion: a[5], plabel: a[6], src: 'base' }));
+const COMIDAS = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena', 'Snacks'];
+
+/* =====================================================================
+   GRUPOS MUSCULARES (detectados automáticamente por el nombre)
+   ===================================================================== */
+const GRUPOS = [
+  ['Glúteo', /hip thrust|gl[uú]te|abducci|puente/], ['Pierna', /sentadilla|prensa|femoral|cu[aá]dri|extensi[oó]n de (pierna|cu)|zancada|estocada|b[uú]lgara|rumano|gemelo|pantorrilla|sill[oó]n|hack|squat|leg /],
+  ['Tríceps', /tr[ií]ceps|franc[eé]s|fondos|patada|skull|dips/], ['Bíceps', /b[ií]ceps|curl|martillo|predicador/],
+  ['Hombro', /militar|hombro|laterales|elevaci[oó]n lateral|face pull|arnold|p[aá]jaro|deltoid|overhead/],
+  ['Espalda', /remo|dominada|jal[oó]n|pull|peso muerto|espalda|pullover|row/],
+  ['Pecho', /banca|pecho|inclinad|declinad|apertura|pec |pec$|cruce|flexiones|bench|chest/],
+  ['Core', /abdom|plancha|crunch|core|rueda|oblicu|elevaci[oó]n de piernas/]
+];
+const grupoDe = n => { const s = norm(n); for (const [g, re] of GRUPOS) if (re.test(s)) return g; return 'Otro'; };
+
+/* =====================================================================
+   ESTADO
+   ===================================================================== */
+let DB = { rutina: [], registros: [], comidas: [], alimentos: [], pesos: [], cfg: {} };
+let sessions = [];
+let workout = null;
+let entrenarMode = 'pick';   // pick | rutina
+let editingRutina = [];
+let foodDate = todayStr();
+let view = 'inicio';
+
+function setData(d) {
+  DB = Object.assign({ rutina: [], registros: [], comidas: [], alimentos: [], pesos: [], cfg: {} }, d || {});
+  DB.cfg = DB.cfg || {};
+  buildSessions();
+  store.set('cache', DB);
+}
+function cacheNow() { store.set('cache', DB); }
+function buildSessions() {
+  const map = {};
+  DB.registros.forEach(r => {
+    const s = map[r.sesionId] || (map[r.sesionId] = { id: r.sesionId, fecha: r.fecha, dia: r.dia, notas: r.notas, creado: r.creado, ex: {} });
+    (s.ex[r.ejercicio] || (s.ex[r.ejercicio] = [])).push({ serie: num(r.serie), peso: num(r.peso), reps: num(r.reps), rpe: r.rpe });
+  });
+  sessions = Object.values(map).map(s => {
+    s.ejercicios = Object.keys(s.ex).map(n => ({ nombre: n, sets: s.ex[n].sort((a, b) => a.serie - b.serie) }));
+    s.vol = sum(s.ejercicios, e => sum(e.sets, x => x.peso * x.reps));
+    return s;
+  }).sort((a, b) => (b.fecha + (b.creado || '')).localeCompare(a.fecha + (a.creado || '')));
+}
+const dias = () => { const o = []; DB.rutina.forEach(r => r.dia && !o.includes(r.dia) && o.push(r.dia)); return o; };
+function allExercises() {
+  const s = new Set();
+  DB.rutina.forEach(r => r.ejercicio && s.add(r.ejercicio));
+  DB.registros.forEach(r => r.ejercicio && s.add(r.ejercicio));
+  return Array.from(s).sort((a, b) => a.localeCompare(b, 'es'));
+}
+function lastSession(ej, excludeId) {
+  for (const s of sessions) {
+    if (s.id === excludeId) continue;
+    const e = s.ejercicios.find(x => norm(x.nombre) === norm(ej));
+    if (e) return { fecha: s.fecha, sets: e.sets };
+  }
+  return null;
+}
+function parseReps(t) {
+  const m = String(t || '').match(/(\d+)\s*[-–a]\s*(\d+)/);
+  if (m) return { min: +m[1], max: +m[2] };
+  const n = parseInt(t, 10); return n ? { min: n, max: n } : null;
+}
+/** Sobrecarga progresiva automática */
+function suggest(ej, repsTxt, seriesObj, inc) {
+  const last = lastSession(ej);
+  if (!last || !last.sets.length) return null;
+  const rng = parseReps(repsTxt);
+  inc = num(inc) || 2.5;
+  const top = Math.max(...last.sets.map(s => s.peso));
+  const work = last.sets.filter(s => s.peso === top);
+  if (!rng) return { peso: top, tipo: 'keep', txt: 'Repetí ' + fmt(top) + ' kg' };
+  if ((!seriesObj || work.length >= seriesObj) && work.every(s => s.reps >= rng.max)) return { peso: top + inc, tipo: 'up', txt: '⬆ SUBÍ A ' + fmt(top + inc) + ' KG' };
+  if (work.some(s => s.reps < rng.min)) return { peso: top, tipo: 'keep', txt: 'Mantené ' + fmt(top) + ' kg · apuntá a ' + rng.min + '+ reps' };
+  return { peso: top, tipo: 'keep', txt: 'Mantené ' + fmt(top) + ' kg · sumá reps' };
+}
+function sessionsByWeek() { const m = {}; sessions.forEach(s => { const w = weekStart(s.fecha); m[w] = (m[w] || 0) + 1; }); return m; }
+function streak() {
+  const goal = num(DB.cfg.entrenosSemana) || 3, by = sessionsByWeek();
+  let w = weekStart(todayStr()), n = 0;
+  if ((by[w] || 0) < goal) w = addDays(w, -7);
+  while ((by[w] || 0) >= goal) { n++; w = addDays(w, -7); }
+  return n;
+}
+function latestWeight() { const p = DB.pesos.slice().sort((a, b) => String(a.fecha).localeCompare(b.fecha)); return p.length ? num(p[p.length - 1].peso) : 0; }
+
+/* =====================================================================
+   OBJETIVOS NUTRICIONALES
+   ===================================================================== */
+function targets() {
+  const c = DB.cfg, w = latestWeight() || num(c.peso) || 75, h = num(c.altura) || 175, a = num(c.edad) || 30, act = num(c.actividad) || 1.55;
+  const bmr = 10 * w + 6.25 * h - 5 * a + (c.sexo === 'f' ? -161 : 5);
+  const tdee = bmr * act;
+  const adj = { perder: -450, mantener: 0, ganar: 300 }[c.objetivo || 'mantener'];
+  const manual = num(c.kcalManual) > 0;
+  const kcal = manual ? num(c.kcalManual) : Math.round((tdee + adj + num(c.kcalAjuste)) / 50) * 50;
+  const prot = Math.round(w * (c.objetivo === 'perder' ? 2.2 : 2));
+  const grasa = Math.round(w * 0.8);
+  const carb = Math.max(0, Math.round((kcal - prot * 4 - grasa * 9) / 4));
+  return { kcal, prot, carb, grasa, tdee: Math.round(tdee), completo: !!(c.altura && c.edad), manual };
+}
+/** Ajuste automático: compara la tendencia real de tu peso con la que buscás */
+function autoAjuste() {
+  const c = DB.cfg;
+  if (num(c.kcalManual) > 0) return null;
+  if (c.ajusteFecha && daysBetween(c.ajusteFecha, todayStr()) < 14) return null;
+  const since = addDays(todayStr(), -21);
+  const pts = DB.pesos.filter(p => p.fecha >= since).map(p => ({ x: daysBetween(since, p.fecha), y: num(p.peso) }));
+  if (pts.length < 6 || Math.max(...pts.map(p => p.x)) - Math.min(...pts.map(p => p.x)) < 10) return null;
+  const mx = sum(pts, p => p.x) / pts.length, my = sum(pts, p => p.y) / pts.length;
+  const slope = sum(pts, p => (p.x - mx) * (p.y - my)) / sum(pts, p => (p.x - mx) ** 2) * 7; // kg/semana
+  const obj = c.objetivo || 'mantener';
+  const meta = { perder: -0.005 * my, mantener: 0, ganar: 0.0025 * my }[obj];
+  let adj = Math.round((-(slope - meta) * 7700 / 7) / 50) * 50;
+  adj = Math.max(-300, Math.min(300, adj));
+  if (Math.abs(adj) < 100) return null;
+  return { adj, slope, meta };
+}
+
+/* =====================================================================
+   NAVEGACIÓN
+   ===================================================================== */
+$$('nav button').forEach(b => b.onclick = () => show(b.dataset.v));
+function show(v) {
+  view = v;
+  $$('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  ['inicio', 'entrenar', 'comida', 'progreso', 'perfil'].forEach(x => $('#v-' + x).classList.toggle('hide', x !== v));
+  ({ inicio: renderInicio, entrenar: renderEntrenar, comida: renderComida, progreso: renderProgreso, perfil: renderPerfil })[v]();
+  renderHeader();
+  window.scrollTo(0, 0);
+}
+function rerender() { show(view); }
+function renderHeader() { const s = streak(); $('#hdrStreak').innerHTML = s ? `🔥 <span>${s}</span>` : ''; }
+function openSheet(html) { $('#sheetBody').innerHTML = html; $('#sheet').classList.remove('hide'); }
+function closeSheet() { $('#sheet').classList.add('hide'); $('#sheetBody').innerHTML = ''; }
+
+/* =====================================================================
+   INICIO
+   ===================================================================== */
+function nextDay() {
+  const ds = dias(); if (!ds.length) return '';
+  const last = sessions.find(s => ds.includes(s.dia));
+  return last ? ds[(ds.indexOf(last.dia) + 1) % ds.length] : ds[0];
+}
+function dayTotals(f) {
+  const it = DB.comidas.filter(c => c.fecha === f);
+  return { kcal: sum(it, c => num(c.kcal)), prot: sum(it, c => num(c.prot)), carb: sum(it, c => num(c.carb)), grasa: sum(it, c => num(c.grasa)), n: it.length };
+}
+function macroBars(t, T) {
+  const b = (lbl, v, max, col) => `<div class="mrow"><div class="row"><b class="grow">${lbl}</b><span class="mut">${fmt(v, 0)} / ${max} g</span></div>
+    <div class="bar"><i style="width:${Math.min(100, max ? v / max * 100 : 0)}%;background:${col}"></i></div></div>`;
+  return b('Proteína', t.prot, T.prot, 'var(--p)') + b('Carbos', t.carb, T.carb, 'var(--c)') + b('Grasas', t.grasa, T.grasa, 'var(--g)');
+}
+function renderInicio() {
+  const T = targets(), hoy = dayTotals(todayStr()), goal = num(DB.cfg.entrenosSemana) || 3;
+  const semana = sessionsByWeek()[weekStart(todayStr())] || 0;
+  const st = streak(), nd = nextDay(), aj = autoAjuste();
+  const wNow = latestWeight();
+  const w7 = DB.pesos.filter(p => p.fecha <= addDays(todayStr(), -7)).sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+  const tonelaje = sum(sessions, s => s.vol);
+  const prs = recentPRs(14);
+  const pesoHoy = DB.pesos.some(p => p.fecha === todayStr());
+  const restante = T.kcal - hoy.kcal;
+  const hora = new Date().getHours();
+  const saludo = hora < 12 ? 'Buen día' : hora < 20 ? 'Buenas tardes' : 'Buenas noches';
+
+  $('#v-inicio').innerHTML = `
+    <div class="hero">
+      <div class="eyebrow" style="position:relative;z-index:1">${saludo} · ${esc(new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }))}</div>
+      <div class="frase">${esc(pick(FRASES, dayOfYear()))}</div>
+      ${workout ? `<button class="btn block" style="position:relative;z-index:1" onclick="show('entrenar')">▶ Seguir entrenamiento</button>`
+        : nd ? `<div class="eyebrow" style="position:relative;z-index:1">Te toca</div>
+          <div class="row" style="position:relative;z-index:1;margin-top:4px"><div class="big grow" style="font-size:28px">${esc(nd)}</div>
+          <button class="btn" onclick="startWorkout(${JSON.stringify(nd).replace(/"/g, '&quot;')})">Empezar</button></div>`
+        : `<button class="btn block" style="position:relative;z-index:1" onclick="entrenarMode='rutina';show('entrenar')">Armá tu rutina</button>`}
+    </div>
+
+    <div class="grid2">
+      <div class="card center">
+        ${ring(semana / goal, semana >= goal ? '#c8ff00' : '#ff3d00', 120, `<div class="big">${semana}<span class="mut" style="font-size:18px">/${goal}</span></div><div class="eyebrow">Entrenos</div>`)}
+        <div class="small mut" style="margin-top:6px">${semana >= goal ? '✅ Meta semanal cumplida' : 'Faltan ' + (goal - semana) + ' esta semana'}</div>
+      </div>
+      <div class="card center" onclick="show('comida')" style="cursor:pointer">
+        ${ring(hoy.kcal / T.kcal, restante < 0 ? '#ff4d4d' : '#4fc3ff', 120, `<div class="big" style="font-size:28px">${fmt(Math.abs(restante), 0)}</div><div class="eyebrow">${restante >= 0 ? 'kcal restan' : 'kcal de más'}</div>`)}
+        <div class="small mut" style="margin-top:6px">${fmt(hoy.kcal, 0)} de ${T.kcal} kcal</div>
+      </div>
+    </div>
+
+    <div class="card">${macroBars(hoy, T)}</div>
+
+    ${aj ? `<div class="card" style="border-color:var(--volt)">
+      <div class="eyebrow volt">🤖 Ajuste automático</div>
+      <p style="margin:6px 0 10px">Tu peso viene ${aj.slope >= 0 ? 'subiendo' : 'bajando'} <b>${fmt(Math.abs(aj.slope), 2)} kg/semana</b> y buscás
+      ${aj.meta === 0 ? 'mantenerlo' : (aj.meta > 0 ? 'subir ' : 'bajar ') + fmt(Math.abs(aj.meta), 2) + ' kg/semana'}.
+      Te recomiendo <b>${aj.adj > 0 ? '+' : ''}${aj.adj} kcal/día</b>.</p>
+      <div class="row"><button class="btn grow" onclick="applyAjuste(${aj.adj})">Aplicar</button><button class="btn sec" onclick="skipAjuste()">Ahora no</button></div></div>` : ''}
+
+    <div class="grid2">
+      <div class="card">
+        <div class="eyebrow">Peso corporal</div>
+        <div class="big" style="margin:6px 0">${wNow ? fmt(wNow) : '—'}<span class="mut" style="font-size:16px"> kg</span></div>
+        <div class="small ${w7 && wNow - num(w7.peso) < 0 ? 'volt' : 'mut'}">${w7 && wNow ? (wNow - num(w7.peso) >= 0 ? '+' : '') + fmt(wNow - num(w7.peso)) + ' kg en 7 días' : 'Sin historial'}</div>
+        ${!pesoHoy ? `<button class="btn ghost" style="padding-left:0" onclick="pesoSheet()">+ Pesarme hoy</button>` : ''}
+      </div>
+      <div class="card">
+        <div class="eyebrow">Tonelaje total</div>
+        <div class="big" style="margin:6px 0">${fmt(tonelaje / 1000)}<span class="mut" style="font-size:16px"> t</span></div>
+        <div class="small mut">${esc(comparacion(tonelaje))}</div>
+      </div>
+    </div>
+
+    ${coachCard()}
+
+    ${prs.length ? `<div class="card"><h2>🏆 Récords recientes</h2>${prs.slice(0, 5).map(p => `<div class="item" style="cursor:default">
+      <span class="grow">${esc(p.ej)}</span><span class="k volt">${fmt(p.peso)} kg</span><span class="small mut">${esc(fmtDate(p.fecha))}</span></div>`).join('')}</div>` : ''}
+
+    ${sessions[0] ? `<div class="card"><div class="eyebrow">Último entrenamiento</div><h3 style="margin-top:4px">${esc(sessions[0].dia || 'Libre')} · ${esc(fmtDate(sessions[0].fecha))}</h3>
+      <div class="small mut">${sessions[0].ejercicios.map(e => esc(e.nombre)).join(' · ')} · ${fmt(sessions[0].vol, 0)} kg</div></div>` : ''}`;
+}
+function recentPRs(days) {
+  const since = addDays(todayStr(), -days), out = [];
+  const best = {};
+  sessions.slice().reverse().forEach(s => s.ejercicios.forEach(e => {
+    const k = norm(e.nombre), top = Math.max(...e.sets.map(x => x.peso));
+    if (best[k] != null && top > best[k] && s.fecha >= since) out.push({ ej: e.nombre, peso: top, fecha: s.fecha });
+    best[k] = Math.max(best[k] || 0, top);
+  }));
+  return out.reverse();
+}
+async function applyAjuste(adj) {
+  DB.cfg.kcalAjuste = num(DB.cfg.kcalAjuste) + adj; DB.cfg.ajusteFecha = todayStr();
+  await saveCfg(); toast('🤖 Objetivo ajustado: ' + targets().kcal + ' kcal'); rerender();
+}
+async function skipAjuste() { DB.cfg.ajusteFecha = todayStr(); await saveCfg(); rerender(); }
+async function saveCfg() { cacheNow(); try { await call('saveConfig', DB.cfg); } catch (e) { toast('Error al guardar: ' + errMsg(e), 4000); } }
+
+/* =====================================================================
+   ENTRENAR
+   ===================================================================== */
+function renderEntrenar() {
+  if (workout) return renderWorkout();
+  if (entrenarMode === 'rutina') return renderRutina();
+  const ds = dias(), nd = nextDay();
+  const el = $('#v-entrenar');
+  el.innerHTML = `
+    <div class="card">
+      <h2>¿Qué toca hoy?</h2>
+      ${ds.length ? `<div class="chips">${ds.map((d, i) => {
+        const last = sessions.find(s => s.dia === d);
+        return `<button class="chip ${d === nd ? 'on' : ''}" onclick="startWorkout(dias()[${i}])">${esc(d)}${last ? ` <span class="small" style="opacity:.6">· ${esc(fmtDate(last.fecha))}</span>` : ''}</button>`;
+      }).join('')}</div>` : `<p class="mut">Todavía no tenés rutina. Armala o arrancá un entrenamiento libre.</p>`}
+      <div class="row" style="margin-top:12px">
+        <button class="btn sec grow" onclick="startWorkout('')">+ Libre</button>
+        <button class="btn sec grow" onclick="entrenarMode='rutina';renderEntrenar()">✏️ Editar rutina</button>
+      </div>
+    </div>
+    <h2 style="margin-top:18px">Historial</h2>
+    <div id="histList"></div>`;
+  renderHistorial();
+}
+
+function newSetsFor(nombre, series, repsTxt, inc) {
+  const last = lastSession(nombre), sug = suggest(nombre, repsTxt, series, inc);
+  const n = Math.max(series || (last ? last.sets.length : 3), 1), sets = [];
+  for (let i = 0; i < n; i++) {
+    const prev = last ? (last.sets[i] || last.sets[last.sets.length - 1]) : null;
+    let peso = prev ? prev.peso : '';
+    if (sug && sug.tipo === 'up' && prev && Math.abs(prev.peso - (sug.peso - (num(inc) || 2.5))) < 0.01) peso = sug.peso;
+    sets.push({ peso, reps: '', rpe: '', done: false, prev: prev ? fmt(prev.peso) + '×' + prev.reps : '' });
+  }
+  return sets;
+}
+function startWorkout(dia) {
+  if (workout && !confirm('Ya tenés un entrenamiento en curso. ¿Reemplazarlo?')) return show('entrenar');
+  const ejercicios = DB.rutina.filter(r => r.dia === dia && r.ejercicio).map(r => ({
+    nombre: r.ejercicio, series: num(r.series) || 3, reps: String(r.reps || ''), incremento: num(r.incremento) || 2.5, notas: r.notas || '',
+    sets: newSetsFor(r.ejercicio, num(r.series) || 3, r.reps, r.incremento)
+  }));
+  workout = { dia, fecha: todayStr(), inicio: Date.now(), notas: '', ejercicios };
+  saveDraft(); show('entrenar');
+}
+function liveStats() {
+  let vol = 0, done = 0, total = 0;
+  workout.ejercicios.forEach(e => e.sets.forEach(s => { total++; if (s.done) { done++; vol += num(s.peso) * num(s.reps); } }));
+  return { vol, done, total };
+}
+function updateLive() {
+  if (!workout || !$('#liveVol')) return;
+  const l = liveStats();
+  $('#liveVol').textContent = fmt(l.vol, 0);
+  $('#liveSets').textContent = l.done + '/' + l.total;
+  const m = Math.floor((Date.now() - workout.inicio) / 1000);
+  $('#liveTime').textContent = workout.sesionId ? '—' : Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
+}
+function renderWorkout() {
+  const el = $('#v-entrenar');
+  el.innerHTML = `
+    <div class="row" style="margin-bottom:10px">
+      <div class="grow"><div class="eyebrow">${workout.sesionId ? 'Editando' : 'En curso'}</div><div class="big" style="font-size:28px">${esc(workout.dia || 'Libre')}</div></div>
+      <input type="date" id="wFecha" value="${esc(workout.fecha)}" style="width:auto" onchange="workout.fecha=this.value;saveDraft()">
+    </div>
+    <div class="live"><div><b id="liveTime">0:00</b><span class="eyebrow">Tiempo</span></div><div><b id="liveVol">0</b><span class="eyebrow">Volumen kg</span></div><div><b id="liveSets">0/0</b><span class="eyebrow">Series</span></div></div>
+    ${workout.ejercicios.map((e, i) => {
+      const sug = workout.sesionId ? null : suggest(e.nombre, e.reps, e.series, e.incremento);
+      const last = lastSession(e.nombre, workout.sesionId);
+      return `<div class="card">
+        <div class="row"><div class="grow"><h3>${esc(e.nombre)}</h3>
+          <span class="mut small">${esc(grupoDe(e.nombre))}${e.reps ? ' · ' + e.series + ' × ' + esc(e.reps) : ''}${last ? ' · Última ' + esc(fmtDate(last.fecha)) : ''}</span>
+          ${e.notas ? `<div class="mut small">📝 ${esc(e.notas)}</div>` : ''}</div>
+          <button class="btn danger" onclick="removeEx(${i})">✕</button></div>
+        ${sug ? `<div style="margin-top:8px"><span class="tag ${sug.tipo}">${esc(sug.txt)}</span></div>` : ''}
+        <table class="sets"><tr><th>Set</th><th>Anterior</th><th>kg</th><th>Reps</th><th>RPE</th><th></th></tr>
+        ${e.sets.map((s, j) => `<tr class="${s.done ? 'done' : ''}">
+          <td>${j + 1}</td><td class="prev">${esc(s.prev || '—')}</td>
+          <td><input inputmode="decimal" value="${esc(s.peso)}" oninput="upd(${i},${j},'peso',this.value)"></td>
+          <td><input inputmode="numeric" value="${esc(s.reps)}" placeholder="${esc((s.prev || '').split('×')[1] || '')}" oninput="upd(${i},${j},'reps',this.value)"></td>
+          <td><input inputmode="decimal" value="${esc(s.rpe)}" placeholder="–" oninput="upd(${i},${j},'rpe',this.value)" style="width:44px"></td>
+          <td><button class="check" onclick="toggleDone(${i},${j})">✓</button></td></tr>`).join('')}
+        </table>
+        <div class="row" style="justify-content:space-between;margin-top:4px">
+          <button class="btn ghost" onclick="addSet(${i})">+ Serie</button>
+          ${e.sets.length > 1 ? `<button class="btn danger" onclick="removeSet(${i})">− Serie</button>` : ''}
+        </div></div>`;
+    }).join('') || '<div class="card empty">Agregá ejercicios abajo 👇</div>'}
+    <div class="card">
+      <div class="row"><input id="addExName" list="exList" placeholder="Agregar ejercicio…" class="grow"><button class="btn sec" onclick="addExerciseToWorkout()">Agregar</button></div>
+      <datalist id="exList">${allExercises().map(e => `<option value="${esc(e)}">`).join('')}</datalist>
+      <textarea rows="2" placeholder="Notas (cómo te sentiste, molestias…)" style="margin-top:10px" oninput="workout.notas=this.value;saveDraft()">${esc(workout.notas || '')}</textarea>
+      <div class="row" style="margin-top:10px"><label class="mut small grow">Descanso entre series (seg)</label>
+        <input type="number" inputmode="numeric" style="width:90px" value="${store.get('rest') || 90}" onchange="store.set('rest',num(this.value))"></div>
+    </div>
+    <button class="btn block" id="btnSave" onclick="finishWorkout()">${workout.sesionId ? 'Guardar cambios' : '🔥 Terminar entrenamiento'}</button>
+    <div class="center" style="margin-top:8px"><button class="btn danger" onclick="cancelWorkout()">Descartar</button></div>`;
+  updateLive();
+}
+function upd(i, j, k, v) { workout.ejercicios[i].sets[j][k] = v; saveDraft(); updateLive(); }
+function toggleDone(i, j) {
+  const s = workout.ejercicios[i].sets[j];
+  s.done = !s.done;
+  if (s.done && s.reps === '') { const rng = parseReps(workout.ejercicios[i].reps); s.reps = (s.prev || '').split('×')[1] || (rng ? rng.max : ''); }
+  if (s.done) timerStart();
+  saveDraft(); const y = window.scrollY; renderWorkout(); window.scrollTo(0, y);
+}
+function addSet(i) { const ss = workout.ejercicios[i].sets, l = ss[ss.length - 1] || {}; ss.push({ peso: l.peso || '', reps: '', rpe: '', done: false, prev: '' }); saveDraft(); const y = window.scrollY; renderWorkout(); window.scrollTo(0, y); }
+function removeSet(i) { workout.ejercicios[i].sets.pop(); saveDraft(); const y = window.scrollY; renderWorkout(); window.scrollTo(0, y); }
+function removeEx(i) { if (confirm('¿Quitar ' + workout.ejercicios[i].nombre + '?')) { workout.ejercicios.splice(i, 1); saveDraft(); renderWorkout(); } }
+function addExerciseToWorkout() {
+  const n = $('#addExName').value.trim(); if (!n) return;
+  const r = DB.rutina.find(x => norm(x.ejercicio) === norm(n)) || {};
+  workout.ejercicios.push({ nombre: n, series: num(r.series) || 3, reps: String(r.reps || ''), incremento: num(r.incremento) || 2.5, notas: '',
+    sets: newSetsFor(n, num(r.series) || 3, r.reps || '', r.incremento || 2.5) });
+  saveDraft(); renderWorkout(); window.scrollTo(0, document.body.scrollHeight);
+}
+function saveDraft() { store.set('draft', workout); }
+function cancelWorkout() {
+  if (!confirm('¿Descartar este entrenamiento? No se guarda nada.')) return;
+  workout = null; store.del('draft'); timerStop(); show('entrenar');
+}
+async function finishWorkout() {
+  const sets = [];
+  workout.ejercicios.forEach(e => { let k = 0; e.sets.forEach(s => { const reps = num(s.reps); if (reps > 0) sets.push({ ejercicio: e.nombre, serie: ++k, peso: num(s.peso), reps, rpe: s.rpe === '' ? '' : num(s.rpe) }); }); });
+  if (!sets.length) return toast('Cargá las reps de al menos una serie');
+  const prs = workout.sesionId ? [] : detectPRs(sets);
+  const vol = sum(sets, s => s.peso * s.reps);
+  const btn = $('#btnSave'); btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    setData(await call('saveSesion', { sesionId: workout.sesionId || '', fecha: workout.fecha, dia: workout.dia, notas: workout.notas, sets }));
+    const editado = !!workout.sesionId;
+    workout = null; store.del('draft'); timerStop();
+    show('inicio');
+    if (editado) toast('Cambios guardados');
+    else if (prs.length) toast('🏆 NUEVO RÉCORD<br>' + prs.map(esc).join('<br>'), 6000, true);
+    else toast(esc(pick(FRASES_FIN)) + (vol ? '<br><span class="small mut">' + fmt(vol, 0) + ' kg movidos</span>' : ''), 3500);
+  } catch (err) {
+    toast('Error al guardar: ' + errMsg(err) + '<br>Tu entrenamiento sigue guardado en el teléfono.', 5000);
+    btn.disabled = false; btn.textContent = '🔥 Terminar entrenamiento';
+  }
+}
+function detectPRs(sets) {
+  const out = [], by = {};
+  sets.forEach(s => (by[s.ejercicio] = by[s.ejercicio] || []).push(s));
+  Object.keys(by).forEach(ex => {
+    const h = DB.registros.filter(r => norm(r.ejercicio) === norm(ex));
+    if (!h.length) return;
+    const maxP = Math.max(...h.map(r => num(r.peso))), max1 = Math.max(...h.map(r => e1rm(num(r.peso), num(r.reps))));
+    const nP = Math.max(...by[ex].map(s => s.peso)), n1 = Math.max(...by[ex].map(s => e1rm(s.peso, s.reps)));
+    if (nP > maxP) out.push(ex + ': ' + fmt(nP) + ' kg (antes ' + fmt(maxP) + ')');
+    else if (n1 > max1 + 0.01) out.push(ex + ': 1RM est. ' + fmt(n1) + ' kg');
+  });
+  return out;
+}
+
+/* ---- Timer de descanso ---- */
+let timerEnd = 0, timerInt = null;
+function timerStart() {
+  timerEnd = Date.now() + (num(store.get('rest')) || 90) * 1000; $('#timer').classList.remove('hide');
+  clearInterval(timerInt); timerInt = setInterval(timerTick, 250); timerTick();
+}
+function timerAdd(s) { timerEnd += s * 1000; timerTick(); }
+function timerStop() { clearInterval(timerInt); $('#timer').classList.add('hide'); }
+function timerTick() {
+  const left = Math.max(0, Math.round((timerEnd - Date.now()) / 1000));
+  $('#timerTxt').textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+  if (left <= 0) { timerStop(); try { navigator.vibrate && navigator.vibrate([300, 150, 300]); } catch (e) {} beep(); toast('⏱ A LA SIGUIENTE SERIE'); }
+}
+function beep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25].forEach(t => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 880; o.connect(g); g.connect(ctx.destination); g.gain.value = .2; o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + .15); });
+  } catch (e) {}
+}
+
+/* ---- Historial ---- */
+function renderHistorial() {
+  const el = $('#histList'); if (!el) return;
+  if (!sessions.length) { el.innerHTML = '<div class="card empty">Sin entrenamientos todavía. El primero es el más difícil.</div>'; return; }
+  let lastW = '';
+  el.innerHTML = sessions.slice(0, 60).map((s, idx) => {
+    const w = weekStart(s.fecha), head = w !== lastW ? `<div class="eyebrow" style="margin:14px 4px 6px">Semana del ${esc(fmtDate(w))}</div>` : '';
+    lastW = w;
+    return head + `<details class="card"><summary><div class="row"><div class="grow"><h3>${esc(s.dia || 'Libre')}</h3>
+      <span class="mut small">${esc(fmtDate(s.fecha))} · ${s.ejercicios.length} ejercicios · ${fmt(s.vol, 0)} kg</span></div><span class="mut">▾</span></div></summary>
+      <table class="list" style="margin-top:8px">${s.ejercicios.map(e => `<tr><td>${esc(e.nombre)}</td>
+        <td class="mut">${esc(e.sets.map(x => fmt(x.peso) + '×' + x.reps + (x.rpe !== '' && x.rpe != null ? ' @' + x.rpe : '')).join(', '))}</td></tr>`).join('')}</table>
+      ${s.notas ? `<p class="mut small">📝 ${esc(s.notas)}</p>` : ''}
+      <div class="row" style="justify-content:flex-end;margin-top:6px"><button class="btn ghost" onclick="editSesion(${idx})">Editar</button>
+      <button class="btn danger" onclick="delSesion(${idx})">Eliminar</button></div></details>`;
+  }).join('');
+}
+function editSesion(idx) {
+  if (workout && !confirm('Tenés un entrenamiento en curso. ¿Reemplazarlo por la edición?')) return;
+  const s = sessions[idx], rut = n => DB.rutina.find(r => norm(r.ejercicio) === norm(n)) || {};
+  workout = { sesionId: s.id, dia: s.dia, fecha: s.fecha, notas: s.notas || '', inicio: Date.now(),
+    ejercicios: s.ejercicios.map(e => ({ nombre: e.nombre, series: num(rut(e.nombre).series) || e.sets.length, reps: String(rut(e.nombre).reps || ''),
+      incremento: num(rut(e.nombre).incremento) || 2.5, notas: '', sets: e.sets.map(x => ({ peso: x.peso, reps: x.reps, rpe: x.rpe == null ? '' : x.rpe, done: true, prev: '' })) })) };
+  saveDraft(); show('entrenar');
+}
+async function delSesion(idx) {
+  if (!confirm('¿Eliminar este entrenamiento? No se puede deshacer.')) return;
+  try { setData(await call('deleteSesion', sessions[idx].id)); renderEntrenar(); toast('Eliminado'); } catch (e) { toast('Error: ' + errMsg(e), 4000); }
+}
+
+/* ---- Editor de rutina ---- */
+function rutinaToEditing() {
+  editingRutina = dias().map(d => ({ dia: d, ejercicios: DB.rutina.filter(r => r.dia === d && r.ejercicio).map(r => ({
+    ejercicio: r.ejercicio, series: r.series, reps: r.reps, incremento: r.incremento || 2.5, notas: r.notas || '' })) }));
+}
+function renderRutina(keep) {
+  if (!keep) rutinaToEditing();
+  $('#v-entrenar').innerHTML = `
+    <div class="row" style="margin-bottom:8px"><button class="btn ghost" style="padding-left:0" onclick="entrenarMode='pick';renderEntrenar()">← Volver</button></div>
+    <div class="card"><h2>Mi rutina</h2>
+      <p class="mut small" style="margin-top:-4px">Usá rangos como <b>8-12</b>. Cuando completes todas las series en el tope, la app te pide subir el peso. <b>+kg</b> es cuánto subir en ese ejercicio.</p>
+      <div class="row"><input id="newDay" placeholder="Nombre del día (ej. Push)" class="grow"><button class="btn sec" onclick="addDay()">+ Día</button></div></div>
+    ${editingRutina.map((d, i) => `<div class="card">
+      <div class="row"><input value="${esc(d.dia)}" oninput="editingRutina[${i}].dia=this.value" class="grow" style="font-weight:800">
+        <button class="btn ghost" onclick="moveDay(${i},-1)">↑</button><button class="btn danger" onclick="delDay(${i})">Borrar</button></div>
+      <div class="ex-edit mut small" style="margin-top:10px"><span>Ejercicio</span><span>Series</span><span>Reps</span><span>+kg</span><span></span></div>
+      ${d.ejercicios.map((e, j) => `<div class="ex-edit">
+        <input value="${esc(e.ejercicio)}" list="exList2" oninput="editingRutina[${i}].ejercicios[${j}].ejercicio=this.value" placeholder="Ejercicio">
+        <input value="${esc(e.series)}" inputmode="numeric" oninput="editingRutina[${i}].ejercicios[${j}].series=this.value">
+        <input value="${esc(e.reps)}" oninput="editingRutina[${i}].ejercicios[${j}].reps=this.value" placeholder="8-12">
+        <input value="${esc(e.incremento)}" inputmode="decimal" oninput="editingRutina[${i}].ejercicios[${j}].incremento=this.value">
+        <button class="x" onclick="delEx(${i},${j})">✕</button></div>`).join('')}
+      <button class="btn ghost" onclick="addEx(${i})">+ Ejercicio</button></div>`).join('')}
+    <datalist id="exList2">${allExercises().map(e => `<option value="${esc(e)}">`).join('')}</datalist>
+    <button class="btn block" onclick="saveRutinaUI()">Guardar rutina</button>
+    <div class="center" style="margin-top:10px"><button class="btn ghost" onclick="loadTemplate()">Cargar rutina de ejemplo (Push / Pull / Pierna)</button></div>`;
+}
+function addDay() {
+  const n = $('#newDay').value.trim() || ('Día ' + String.fromCharCode(65 + editingRutina.length));
+  editingRutina.push({ dia: n, ejercicios: [{ ejercicio: '', series: 3, reps: '8-12', incremento: 2.5, notas: '' }] }); renderRutina(true);
+}
+function delDay(i) { if (confirm('¿Borrar "' + editingRutina[i].dia + '"? (el historial queda)')) { editingRutina.splice(i, 1); renderRutina(true); } }
+function moveDay(i, d) { if (i + d < 0) return; const [x] = editingRutina.splice(i, 1); editingRutina.splice(i + d, 0, x); renderRutina(true); }
+function addEx(i) { editingRutina[i].ejercicios.push({ ejercicio: '', series: 3, reps: '8-12', incremento: 2.5, notas: '' }); renderRutina(true); }
+function delEx(i, j) { editingRutina[i].ejercicios.splice(j, 1); renderRutina(true); }
+async function saveRutinaUI() {
+  const rows = [];
+  editingRutina.forEach(d => d.ejercicios.forEach(e => {
+    if (d.dia.trim() && String(e.ejercicio).trim()) rows.push({ dia: d.dia.trim(), ejercicio: String(e.ejercicio).trim(), series: num(e.series) || 3, reps: String(e.reps || '').trim(), incremento: num(e.incremento) || 2.5, notas: e.notas || '' });
+  }));
+  try { toast('Guardando…'); setData(await call('saveRutina', rows)); entrenarMode = 'pick'; renderEntrenar(); toast('✅ Rutina guardada'); }
+  catch (e) { toast('Error: ' + errMsg(e), 4000); }
+}
+function loadTemplate() {
+  if (editingRutina.length && !confirm('Esto reemplaza lo que estás editando. ¿Seguir?')) return;
+  const mk = (n, s, r, inc) => ({ ejercicio: n, series: s, reps: r, incremento: inc || 2.5, notas: '' });
+  editingRutina = [
+    { dia: 'Push', ejercicios: [mk('Press banca', 4, '6-8'), mk('Press inclinado mancuernas', 3, '8-12', 2), mk('Press militar', 3, '6-10'), mk('Elevaciones laterales', 3, '12-15', 1), mk('Extensión tríceps polea', 3, '10-12')] },
+    { dia: 'Pull', ejercicios: [mk('Dominadas', 4, '6-10', 1.25), mk('Remo con barra', 4, '6-8'), mk('Jalón al pecho', 3, '10-12'), mk('Face pull', 3, '12-15'), mk('Curl bíceps barra', 3, '8-12', 1.25)] },
+    { dia: 'Pierna', ejercicios: [mk('Sentadilla', 4, '5-8', 5), mk('Peso muerto rumano', 3, '8-10', 5), mk('Prensa', 3, '10-12', 10), mk('Curl femoral', 3, '10-12'), mk('Gemelos', 4, '12-15', 5)] }
+  ];
+  renderRutina(true); toast('Ejemplo cargado: ajustalo y tocá Guardar');
+}
+
+/* =====================================================================
+   COMIDA
+   ===================================================================== */
+function renderComida() {
+  const T = targets(), t = dayTotals(foodDate), restante = T.kcal - t.kcal;
+  const items = DB.comidas.filter(c => c.fecha === foodDate);
+  const esHoy = foodDate === todayStr();
+  $('#v-comida').innerHTML = `
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn sec" onclick="foodDate=addDays(foodDate,-1);renderComida()">◀</button>
+      <div class="grow center"><div class="eyebrow">${esHoy ? 'Hoy' : foodDate === addDays(todayStr(), -1) ? 'Ayer' : ''}</div><b>${esc(fmtDate(foodDate))}</b></div>
+      <button class="btn sec" onclick="foodDate=addDays(foodDate,1);renderComida()" ${esHoy ? 'disabled' : ''}>▶</button>
+    </div>
+    <div class="card">
+      <div class="row" style="align-items:center">
+        ${ring(t.kcal / T.kcal, restante < 0 ? '#ff4d4d' : '#ff3d00', 130, `<div class="big" style="font-size:30px">${fmt(Math.abs(restante), 0)}</div><div class="eyebrow">${restante >= 0 ? 'Restan' : 'Te pasaste'}</div>`)}
+        <div class="grow" style="padding-left:6px">
+          <div class="row"><span class="mut grow">Objetivo</span><b>${T.kcal}</b></div>
+          <div class="row"><span class="mut grow">Comido</span><b>${fmt(t.kcal, 0)}</b></div>
+          <div class="row small" style="margin-top:6px"><span class="mut grow">Mantenimiento est.</span><span>${T.tdee}</span></div>
+          ${!T.completo ? `<button class="btn ghost small" style="padding-left:0" onclick="show('perfil')">⚠️ Completá tu perfil</button>` : ''}
+        </div>
+      </div>
+      <div style="margin-top:12px">${macroBars(t, T)}</div>
+    </div>
+    ${COMIDAS.map(m => {
+      const its = items.filter(c => c.comida === m);
+      return `<div class="card"><div class="row"><h3 class="grow">${m}</h3><span class="mut small">${fmt(sum(its, c => num(c.kcal)), 0)} kcal</span>
+        <button class="btn ghost" onclick="openFood('${m}')">+ Agregar</button></div>
+        ${its.map(c => `<div class="item" onclick="editComida('${esc(c.id)}')"><div class="grow"><div>${esc(c.alimento)}</div>
+          <div class="small mut">${num(c.gramos) ? fmt(num(c.gramos), 0) + ' g · ' : ''}P ${fmt(num(c.prot), 0)} · C ${fmt(num(c.carb), 0)} · G ${fmt(num(c.grasa), 0)}</div></div>
+          <span class="k">${fmt(num(c.kcal), 0)}</span></div>`).join('')}</div>`;
+    }).join('')}
+    <div class="row"><button class="btn sec grow" onclick="copyDay()">⧉ Copiar comidas de ayer</button></div>`;
+}
+
+let FS = null; // estado del buscador de alimentos
+function foodLibrary() {
+  const seen = new Set(), out = [];
+  const add = f => { const k = norm(f.nombre); if (!seen.has(k)) { seen.add(k); out.push(f); } };
+  recents().forEach(add);
+  DB.alimentos.forEach(a => add({ nombre: a.nombre, kcal: num(a.kcal), prot: num(a.prot), carb: num(a.carb), grasa: num(a.grasa), porcion: num(a.porcion) || 100, plabel: 'porción', src: 'propio' }));
+  LOCAL_FOODS.forEach(add);
+  return out;
+}
+function recents() {
+  const seen = new Set(), out = [];
+  DB.comidas.slice().sort((a, b) => String(b.creado || b.fecha).localeCompare(String(a.creado || a.fecha))).forEach(c => {
+    const g = num(c.gramos), k = norm(c.alimento);
+    if (!g || seen.has(k)) return; seen.add(k);
+    out.push({ nombre: c.alimento, kcal: num(c.kcal) * 100 / g, prot: num(c.prot) * 100 / g, carb: num(c.carb) * 100 / g, grasa: num(c.grasa) * 100 / g, porcion: g, plabel: 'última vez', src: 'reciente' });
+  });
+  return out;
+}
+function openFood(comida) {
+  FS = { comida, q: '', list: [], online: [], buscando: false };
+  openSheet(`
+    <div class="row" style="margin-bottom:10px"><h2 class="grow" style="margin:0">${esc(comida)}</h2><button class="btn sec" onclick="closeSheet()">✕</button></div>
+    <input id="fq" placeholder="${GAS ? 'Buscar alimento o código de barras…' : 'Buscar alimento…'}" oninput="FS.q=this.value;renderFoodList()" autocomplete="off">
+    <div class="chips" style="margin:10px 0">
+      ${SAMPLE ? `<button class="chip on" onclick="aiFoodForm()">🤖 Describir o foto</button>` : ''}
+      ${GAS ? `<button class="chip" onclick="searchOnline()">🌐 Buscar online</button>` : ''}
+      <button class="chip" onclick="createFoodForm()">✚ Crear</button>
+      <button class="chip" onclick="quickKcal()">⚡ Calorías rápidas</button>
+    </div>
+    <div id="foodList"></div>`);
+  renderFoodList();
+}
+function renderFoodList() {
+  const q = norm(FS.q).trim();
+  const lib = foodLibrary();
+  FS.list = q ? lib.filter(f => q.split(/\s+/).every(w => norm(f.nombre).includes(w))).slice(0, 40) : lib.filter(f => f.src === 'reciente').slice(0, 15);
+  if (!q && !FS.list.length) FS.list = LOCAL_FOODS.slice(0, 15);
+  const row = (f, i, pre) => `<div class="item" onclick="selectFood('${pre}',${i})"><div class="grow"><div>${esc(f.nombre)}</div>
+    <div class="small mut">${fmt(f.kcal, 0)} kcal · P ${fmt(f.prot, 0)} · C ${fmt(f.carb, 0)} · G ${fmt(f.grasa, 0)} <span style="opacity:.6">/100 g</span>${f.src === 'reciente' ? ' · 🕘' : f.src === 'propio' ? ' · ⭐' : ''}</div></div><span class="mut">›</span></div>`;
+  $('#foodList').innerHTML =
+    `<div class="eyebrow" style="margin:6px 0">${q ? 'Resultados' : 'Recientes'}</div>` +
+    (FS.list.map((f, i) => row(f, i, 'l')).join('') || `<div class="empty small">Nada en tu base. Probá ${SAMPLE ? '“🤖 Describir o foto”' : GAS ? '“Buscar online”' + (/^\d{8,14}$/.test(q) ? ' (código de barras)' : '') : '“⚡ Calorías rápidas”'} o creá el alimento.</div>`) +
+    (FS.buscando ? '<div class="empty">Buscando en internet…</div>' : '') +
+    (FS.online.length ? '<div class="eyebrow" style="margin:14px 0 6px">🌐 Online (Open Food Facts)</div>' + FS.online.map((f, i) => row(f, i, 'o')).join('') : '');
+}
+async function searchOnline() {
+  const q = FS.q.trim(); if (!q) return toast('Escribí qué buscar');
+  FS.buscando = true; FS.online = []; renderFoodList();
+  try { FS.online = await call('buscarAlimentoOnline', q); if (!FS.online.length) toast('No se encontró nada online'); }
+  catch (e) { toast('Error buscando: ' + errMsg(e), 4000); }
+  FS.buscando = false; if (FS) renderFoodList();
+}
+function backToSearch() {
+  const q = FS.q, on = FS.online;
+  openFood(FS.comida); FS.q = q; FS.online = on; $('#fq').value = q; renderFoodList();
+}
+function selectFood(pre, i) { FS.sel = (pre === 'o' ? FS.online : FS.list)[i]; renderFoodDetail(); }
+function renderFoodDetail() {
+  const f = FS.sel, g0 = f.porcion || 100;
+  const opts = [[g0, f.plabel ? '1 ' + f.plabel + ' (' + fmt(g0, 0) + ' g)' : fmt(g0, 0) + ' g'], [g0 * 2, '×2'], [100, '100 g'], [g0 / 2, '½']];
+  openSheet(`
+    <div class="row" style="margin-bottom:6px"><button class="btn ghost" style="padding-left:0" onclick="backToSearch()">← Volver</button><span class="grow"></span><button class="btn sec" onclick="closeSheet()">✕</button></div>
+    <h2>${esc(f.nombre)}</h2>
+    <div class="chips" style="margin-bottom:10px">${opts.map(o => `<button class="chip" onclick="$('#fg').value=${o[0]};foodPreview()">${esc(o[1])}</button>`).join('')}</div>
+    <label class="f">Cantidad (gramos)</label><input id="fg" inputmode="decimal" value="${Math.round(g0)}" oninput="foodPreview()">
+    <div class="grid3" style="margin:14px 0" id="fprev"></div>
+    <label class="f">Comida</label><select id="fm">${COMIDAS.map(m => `<option ${m === FS.comida ? 'selected' : ''}>${m}</option>`).join('')}</select>
+    <button class="btn block" style="margin-top:14px" onclick="addSelectedFood()">Agregar</button>`);
+  foodPreview();
+}
+function foodPreview() {
+  const f = FS.sel, g = num($('#fg').value), k = g / 100;
+  $('#fprev').innerHTML = [['kcal', f.kcal * k, 'var(--acc)'], ['Prot', f.prot * k, 'var(--p)'], ['Carb', f.carb * k, 'var(--c)']].map(x =>
+    `<div class="card center" style="margin:0;padding:10px"><div class="big" style="font-size:24px;color:${x[2]}">${fmt(x[1], 0)}</div><div class="eyebrow">${x[0]}</div></div>`).join('') +
+    `<div class="small mut" style="grid-column:1/-1;text-align:center">Grasas ${fmt(f.grasa * k)} g</div>`;
+}
+function addSelectedFood() {
+  const f = FS.sel, g = num($('#fg').value); if (!g) return toast('Poné la cantidad');
+  const k = g / 100;
+  addComidaRows([{ id: uid(), fecha: foodDate, comida: $('#fm').value, alimento: f.nombre, gramos: Math.round(g),
+    kcal: Math.round(f.kcal * k), prot: +(f.prot * k).toFixed(1), carb: +(f.carb * k).toFixed(1), grasa: +(f.grasa * k).toFixed(1) }]);
+  if (f.src === 'online') call('saveAlimento', { nombre: f.nombre, kcal: f.kcal, prot: f.prot, carb: f.carb, grasa: f.grasa, porcion: f.porcion }).catch(() => {});
+  closeSheet();
+}
+function addComidaRows(rows, msg) {
+  const now = new Date().toISOString().slice(0, 19);
+  rows.forEach(r => r.creado = now);
+  DB.comidas.push(...rows); cacheNow(); rerender();
+  toast(msg || '✅ ' + esc(rows[0].alimento) + ' · ' + rows[0].kcal + ' kcal');
+  call('addComidas', rows).catch(e => {
+    const ids = rows.map(r => r.id); DB.comidas = DB.comidas.filter(c => !ids.includes(c.id)); cacheNow(); rerender();
+    toast('No se pudo guardar: ' + errMsg(e), 4000);
+  });
+}
+/* ---- IA: calorías desde una descripción o una foto ---- */
+function aiFoodForm() {
+  FS.aiImg = null; FS.ai = [];
+  openSheet(`
+    <div class="row" style="margin-bottom:6px"><button class="btn ghost" style="padding-left:0" onclick="backToSearch()">← Volver</button><span class="grow"></span><button class="btn sec" onclick="closeSheet()">✕</button></div>
+    <h2>🤖 ¿Qué comiste?</h2>
+    <p class="small mut" style="margin-top:-6px">Escribilo como se lo dirías a alguien${IMG_OK ? ' o sacale una foto al plato' : ''}. La IA estima cada alimento y vos confirmás.</p>
+    <textarea id="aiq" rows="3" placeholder="Ej: 2 empanadas de carne, ensalada de tomate y una coca chica">${esc(FS.q)}</textarea>
+    ${IMG_OK ? `<label class="btn sec block" style="display:block;text-align:center;margin-top:10px">📷 Sacar o elegir foto
+      <input type="file" id="aiimg" accept="image/*" hidden onchange="FS.aiImg=this.files[0]||null;$('#aiimgname').textContent=FS.aiImg?'Foto lista: '+FS.aiImg.name:''"></label>
+      <div id="aiimgname" class="small volt center" style="margin-top:6px"></div>` : ''}
+    <button class="btn block" id="aibtn" style="margin-top:12px" onclick="aiEstimate()">Calcular calorías</button>
+    <div id="aires"></div>`);
+}
+async function aiEstimate() {
+  const txt = $('#aiq').value.trim(), img = FS.aiImg;
+  if (!txt && !img) return toast('Describí lo que comiste' + (IMG_OK ? ' o subí una foto' : ''));
+  const btn = $('#aibtn'); btn.disabled = true; btn.textContent = 'Pensando…';
+  const prompt = 'Sos nutricionista deportivo. Identificá cada alimento ' + (img ? 'que se ve en la foto' : '') + (img && txt ? ' y ' : '') +
+    (txt ? 'de esta descripción: "' + txt.slice(0, 600) + '"' : '') + '.\n' +
+    'Si no se indican cantidades, usá porciones típicas de Latinoamérica. Estimá la porción consumida (no por 100 g).\n' +
+    'Respondé SOLO con un JSON array, un objeto por alimento, números redondeados:\n' +
+    '[{"nombre":"Empanada de carne","gramos":90,"kcal":260,"prot":10,"carb":25,"grasa":13}]\n' +
+    'Si no es comida o no se puede identificar, respondé [].';
+  const opts = { modelTier: 'quick' };
+  if (img) opts.images = [img];
+  try {
+    const r = await SAMPLE.json(prompt, opts);
+    FS.ai = (Array.isArray(r) ? r : []).filter(x => x && x.nombre).slice(0, 15).map(x => ({
+      nombre: String(x.nombre).slice(0, 80), gramos: Math.max(0, Math.round(num(x.gramos))), kcal: Math.max(0, Math.round(num(x.kcal))),
+      prot: +num(x.prot).toFixed(1), carb: +num(x.carb).toFixed(1), grasa: +num(x.grasa).toFixed(1) }));
+    if (!FS.ai.length) toast('No identifiqué comida ahí. Probá describirlo con más detalle.');
+    renderAiRes();
+  } catch (e) { const m = aiErr(e); if (m) toast(m, 4000); }
+  if ($('#aibtn')) { $('#aibtn').disabled = false; $('#aibtn').textContent = FS.ai.length ? 'Recalcular' : 'Calcular calorías'; }
+}
+function renderAiRes() {
+  const it = FS.ai || [];
+  if (!it.length) { $('#aires').innerHTML = ''; return; }
+  $('#aires').innerHTML = `<div class="card" style="margin-top:14px">
+    ${it.map((x, i) => `<div class="item" style="cursor:default"><div class="grow"><div>${esc(x.nombre)}</div>
+      <div class="small mut">${x.gramos ? x.gramos + ' g · ' : ''}P ${fmt(x.prot, 0)} · C ${fmt(x.carb, 0)} · G ${fmt(x.grasa, 0)}</div></div>
+      <span class="k">${x.kcal}</span><button class="btn danger" onclick="FS.ai.splice(${i},1);renderAiRes()">✕</button></div>`).join('')}
+    <div class="row" style="margin-top:10px"><b class="grow">Total</b><b class="hot">${sum(it, x => x.kcal)} kcal</b></div></div>
+    <label class="f">Comida</label><select id="aim">${COMIDAS.map(m => `<option ${m === FS.comida ? 'selected' : ''}>${m}</option>`).join('')}</select>
+    <button class="btn block" style="margin-top:12px" onclick="addAiFoods()">Agregar ${it.length} alimento${it.length > 1 ? 's' : ''}</button>
+    <p class="small mut center">Es una estimación. Tocá cada alimento después para ajustar los gramos.</p>`;
+}
+function addAiFoods() {
+  const comida = $('#aim').value;
+  addComidaRows(FS.ai.map(x => ({ id: uid(), fecha: foodDate, comida, alimento: x.nombre, gramos: x.gramos, kcal: x.kcal, prot: x.prot, carb: x.carb, grasa: x.grasa })),
+    '🤖 ' + FS.ai.length + ' alimentos · ' + sum(FS.ai, x => x.kcal) + ' kcal');
+  closeSheet();
+}
+
+/* ---- IA: coach que analiza tus últimas 4 semanas ---- */
+let coachCtl = null;
+async function coach() {
+  const out = $('#coachOut'), btn = $('#coachBtn'); if (!out || !SAMPLE) return;
+  if (coachCtl) { coachCtl.abort(); return; }
+  const c = DB.cfg, T = targets(), goal = num(c.entrenosSemana) || 3, since = addDays(todayStr(), -28);
+  const ses = sessions.filter(s => s.fecha >= since).reverse().map(s => s.fecha + ' ' + (s.dia || 'Libre') + ': ' +
+    s.ejercicios.map(e => e.nombre + ' ' + e.sets.map(x => x.peso + 'x' + x.reps).join(',')).join(' | ')).join('\n');
+  const com = []; for (let i = 13; i >= 0; i--) { const f = addDays(todayStr(), -i), t = dayTotals(f); if (t.n) com.push(f + ': ' + Math.round(t.kcal) + ' kcal, ' + Math.round(t.prot) + ' g proteína'); }
+  const pes = DB.pesos.filter(p => p.fecha >= since).map(p => p.fecha + ': ' + p.peso + ' kg').join(', ');
+  const prompt = 'Sos el coach de HIERRO, una app de gym. Hablás en español latino, directo, con energía y sin vueltas, como un buen entrenador. ' +
+    'Analizá los datos de las últimas 4 semanas y respondé en texto plano (sin tablas ni títulos markdown), máximo 170 palabras, con este formato:\n' +
+    'Una línea de veredicto.\n• Lo que viene bien (1-2 viñetas)\n• Lo que hay que corregir (1-2 viñetas)\n• 3 acciones concretas para esta semana, con números (kg, reps, kcal, proteína).\n' +
+    'Si faltan datos, decilo y pedí registrarlos.\n\n' +
+    `Perfil: objetivo ${c.objetivo || 'mantener'}, meta ${goal} entrenamientos por semana, objetivo ${T.kcal} kcal y ${T.prot} g de proteína por día. Hoy es ${todayStr()}.\n` +
+    'Entrenamientos (peso x reps por serie):\n' + (ses || 'ninguno registrado') + '\n\nComida (días registrados):\n' + (com.join('\n') || 'nada registrado') +
+    '\n\nPeso corporal: ' + (pes || 'sin registros');
+  coachCtl = new AbortController();
+  btn.textContent = 'Detener'; out.textContent = 'Analizando tus semanas…'; out.classList.add('mut');
+  try {
+    await SAMPLE(prompt.slice(0, 60000), { cache: false, signal: coachCtl.signal, onText: ({ text }) => { out.classList.remove('mut'); out.textContent = text; } });
+  } catch (e) { const m = aiErr(e); out.textContent = (e && e.text) || ''; if (m) toast(m, 4000); }
+  coachCtl = null; if ($('#coachBtn')) $('#coachBtn').textContent = '🤖 Analizar de nuevo';
+}
+function coachCard() {
+  return SAMPLE ? `<div class="card"><div class="eyebrow">🤖 Coach IA</div>
+    <p class="small mut" style="margin:4px 0 10px">Lee tus entrenamientos, comidas y peso de las últimas 4 semanas y te dice qué ajustar.</p>
+    <div id="coachOut" style="white-space:pre-wrap;margin-bottom:10px"></div>
+    <button class="btn block" id="coachBtn" onclick="coach()">🤖 Analizar mis últimas 4 semanas</button></div>` : '';
+}
+
+/* ---- Respaldo de datos (versión Claude) ---- */
+async function exportData(kind) {
+  if (!DOWNLOADS) return toast('Descargas no disponibles acá');
+  const d = todayStr();
+  let filename, data;
+  if (kind === 'json') { filename = 'hierro-respaldo-' + d + '.json'; data = JSON.stringify({ rutina: DB.rutina, registros: DB.registros, comidas: DB.comidas, alimentos: DB.alimentos, pesos: DB.pesos, cfg: DB.cfg }, null, 1); }
+  else {
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const rows = [['fecha', 'dia', 'ejercicio', 'serie', 'peso', 'reps', 'rpe']].concat(DB.registros.slice().sort((a, b) => String(a.fecha).localeCompare(b.fecha)).map(r => [r.fecha, r.dia, r.ejercicio, r.serie, r.peso, r.reps, r.rpe]));
+    filename = 'hierro-series-' + d + '.csv'; data = rows.map(r => r.map(q).join(',')).join('\n');
+  }
+  try { await DOWNLOADS.save({ filename, data }); } catch (e) { if (e && e.code !== 'cancelled' && e.code !== 'declined') toast('No se pudo descargar', 3000); }
+}
+
+function createFoodForm() {
+  openSheet(`
+    <div class="row"><h2 class="grow" style="margin:0">Crear alimento</h2><button class="btn sec" onclick="closeSheet()">✕</button></div>
+    <p class="mut small">Copiá los valores de la etiqueta (por 100 g). Queda guardado para la próxima.</p>
+    <label class="f">Nombre</label><input id="cn" value="${esc(FS.q)}">
+    <div class="grid2" style="margin:0"><div><label class="f">kcal / 100 g</label><input id="ck" inputmode="decimal"></div><div><label class="f">Proteína g</label><input id="cp" inputmode="decimal"></div>
+    <div><label class="f">Carbos g</label><input id="cc" inputmode="decimal"></div><div><label class="f">Grasas g</label><input id="cg" inputmode="decimal"></div></div>
+    <label class="f">Porción habitual (g)</label><input id="cpo" inputmode="decimal" value="100">
+    <button class="btn block" style="margin-top:14px" onclick="saveCustomFood()">Guardar y usar</button>`);
+}
+async function saveCustomFood() {
+  const f = { nombre: $('#cn').value.trim(), kcal: num($('#ck').value), prot: num($('#cp').value), carb: num($('#cc').value), grasa: num($('#cg').value), porcion: num($('#cpo').value) || 100 };
+  if (!f.nombre || !f.kcal) return toast('Poné nombre y calorías');
+  DB.alimentos = DB.alimentos.filter(a => norm(a.nombre) !== norm(f.nombre)).concat([f]); cacheNow();
+  call('saveAlimento', f).catch(e => toast('Error: ' + errMsg(e), 4000));
+  FS.sel = Object.assign({ plabel: 'porción', src: 'propio' }, f); renderFoodDetail();
+}
+function quickKcal() {
+  openSheet(`
+    <div class="row"><h2 class="grow" style="margin:0">⚡ Calorías rápidas</h2><button class="btn sec" onclick="closeSheet()">✕</button></div>
+    <p class="mut small">Para cuando no sabés exactamente qué comiste. Estimá y seguí.</p>
+    <label class="f">Descripción</label><input id="qn" placeholder="Ej. cumpleaños, comida afuera" value="${esc(FS.q)}">
+    <div class="grid2" style="margin:0"><div><label class="f">kcal</label><input id="qk" inputmode="decimal"></div><div><label class="f">Proteína g (opcional)</label><input id="qp" inputmode="decimal"></div></div>
+    <button class="btn block" style="margin-top:14px" onclick="saveQuick()">Agregar</button>`);
+}
+function saveQuick() {
+  const k = num($('#qk').value); if (!k) return toast('Poné las calorías');
+  addComidaRows([{ id: uid(), fecha: foodDate, comida: FS.comida, alimento: $('#qn').value.trim() || 'Calorías rápidas', gramos: 0, kcal: Math.round(k), prot: num($('#qp').value), carb: 0, grasa: 0 }]);
+  closeSheet();
+}
+function editComida(id) {
+  const c = DB.comidas.find(x => x.id === id); if (!c) return;
+  const g = num(c.gramos);
+  openSheet(`
+    <div class="row"><h2 class="grow" style="margin:0">${esc(c.alimento)}</h2><button class="btn sec" onclick="closeSheet()">✕</button></div>
+    ${g ? `<label class="f">Cantidad (g)</label><input id="eg" inputmode="decimal" value="${g}">` : `<label class="f">kcal</label><input id="ek" inputmode="decimal" value="${num(c.kcal)}">`}
+    <label class="f">Comida</label><select id="em">${COMIDAS.map(m => `<option ${m === c.comida ? 'selected' : ''}>${m}</option>`).join('')}</select>
+    <div class="row" style="margin-top:14px"><button class="btn grow" onclick="saveEditComida('${esc(id)}')">Guardar</button><button class="btn sec" onclick="delComida('${esc(id)}')">🗑 Borrar</button></div>`);
+}
+function saveEditComida(id) {
+  const c = DB.comidas.find(x => x.id === id), g = num(c.gramos);
+  if (g) { const ng = num($('#eg').value), k = ng / g; if (!ng) return toast('Cantidad inválida');
+    Object.assign(c, { gramos: Math.round(ng), kcal: Math.round(num(c.kcal) * k), prot: +(num(c.prot) * k).toFixed(1), carb: +(num(c.carb) * k).toFixed(1), grasa: +(num(c.grasa) * k).toFixed(1) }); }
+  else c.kcal = Math.round(num($('#ek').value));
+  c.comida = $('#em').value;
+  cacheNow(); closeSheet(); rerender();
+  call('updateComida', c).catch(e => toast('No se pudo guardar: ' + errMsg(e), 4000));
+}
+function delComida(id) {
+  DB.comidas = DB.comidas.filter(x => x.id !== id); cacheNow(); closeSheet(); rerender();
+  call('deleteComida', id).catch(e => toast('No se pudo borrar: ' + errMsg(e), 4000));
+}
+function copyDay() {
+  const src = DB.comidas.filter(c => c.fecha === addDays(foodDate, -1));
+  if (!src.length) return toast('El día anterior no tiene comidas');
+  if (!confirm('¿Copiar ' + src.length + ' alimentos del día anterior a este día?')) return;
+  addComidaRows(src.map(c => Object.assign({}, c, { id: uid(), fecha: foodDate })), '⧉ ' + src.length + ' alimentos copiados');
+}
+
+/* =====================================================================
+   PROGRESO
+   ===================================================================== */
+let pMetric = 'peso', pGroup = 'sesion';
+const METRIC_LBL = { peso: 'Peso máx (kg)', e1rm: '1RM estimado (kg)', vol: 'Volumen (kg)', reps: 'Reps totales' };
+function exSeries(ex) {
+  return sessions.slice().reverse().map(s => {
+    const e = s.ejercicios.find(x => norm(x.nombre) === norm(ex)); if (!e) return null;
+    return { fecha: s.fecha, peso: Math.max(...e.sets.map(x => x.peso)), e1rm: Math.max(...e.sets.map(x => e1rm(x.peso, x.reps))),
+      vol: sum(e.sets, x => x.peso * x.reps), reps: sum(e.sets, x => x.reps), sets: e.sets };
+  }).filter(Boolean);
+}
+function groupWeekly(pts) {
+  const m = {};
+  pts.forEach(p => { const w = weekStart(p.fecha), g = m[w] || (m[w] = { fecha: w, peso: 0, e1rm: 0, vol: 0, reps: 0, n: 0 });
+    g.peso = Math.max(g.peso, p.peso); g.e1rm = Math.max(g.e1rm, p.e1rm); g.vol += p.vol; g.reps += p.reps; g.n++; });
+  return Object.values(m).sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+function renderProgreso() {
+  const exs = allExercises().filter(e => DB.registros.some(r => norm(r.ejercicio) === norm(e)));
+  const el = $('#v-progreso');
+  if (!exs.length && !DB.pesos.length && !DB.comidas.length) { el.innerHTML = '<div class="card empty">Todavía no hay datos. Andá a entrenar 💪</div>'; return; }
+  let ex = store.get('pEx'); if (!exs.includes(ex)) ex = exs[0];
+  const pts = ex ? exSeries(ex) : [], data = pGroup === 'semana' ? groupWeekly(pts) : pts;
+
+  // series por grupo muscular esta semana
+  const ws = weekStart(todayStr()), mg = {};
+  sessions.filter(s => s.fecha >= ws).forEach(s => s.ejercicios.forEach(e => { const g = grupoDe(e.nombre); mg[g] = (mg[g] || 0) + e.sets.length; }));
+  const grupos = GRUPOS.map(g => g[0]).concat(['Otro']).filter(g => mg[g] || g !== 'Otro');
+
+  let statsHtml = '', tableHtml = '';
+  if (pts.length) {
+    const first = pts[0], last = pts[pts.length - 1];
+    const ref4 = pts.filter(p => p.fecha <= addDays(todayStr(), -28)).pop() || first;
+    const d = (a, b) => `<span class="${a - b >= 0 ? 'volt' : 'neg'}">${a - b >= 0 ? '+' : ''}${fmt(a - b)}</span>`;
+    statsHtml = `<div class="grid3" style="margin-bottom:12px">
+      <div class="card" style="margin:0"><div class="eyebrow">Récord</div><div class="big" style="font-size:26px">${fmt(Math.max(...pts.map(p => p.peso)))}</div><div class="small mut">1RM ${fmt(Math.max(...pts.map(p => p.e1rm)))}</div></div>
+      <div class="card" style="margin:0"><div class="eyebrow">Desde inicio</div><div class="big" style="font-size:26px">${d(last.peso, first.peso)}</div><div class="small mut">kg</div></div>
+      <div class="card" style="margin:0"><div class="eyebrow">4 semanas</div><div class="big" style="font-size:26px">${d(last.peso, ref4.peso)}</div><div class="small mut">kg · ${pts.length} sesiones</div></div></div>`;
+    const rows = data.slice().reverse().slice(0, 30);
+    tableHtml = `<div class="card"><h2>${pGroup === 'semana' ? 'Semana a semana' : 'Día a día'}</h2><table class="list">
+      <tr><th>${pGroup === 'semana' ? 'Semana' : 'Fecha'}</th><th>Máx</th><th>±</th><th>${pGroup === 'semana' ? 'Ses.' : 'Series'}</th><th>Vol.</th></tr>
+      ${rows.map((p, i) => { const prev = rows[i + 1], dv = prev ? p.peso - prev.peso : 0;
+        return `<tr><td>${esc(fmtDate(p.fecha))}</td><td><b>${fmt(p.peso)}</b></td><td class="${dv > 0 ? 'volt' : dv < 0 ? 'neg' : 'mut'}">${prev ? (dv > 0 ? '+' : '') + fmt(dv) : '—'}</td>
+        <td class="mut small">${pGroup === 'semana' ? p.n : esc(p.sets.map(s => fmt(s.peso) + '×' + s.reps).join(', '))}</td><td>${fmt(p.vol, 0)}</td></tr>`; }).join('')}</table></div>`;
+  }
+
+  el.innerHTML = `
+    ${exs.length ? `<div class="card">
+      <select onchange="store.set('pEx',this.value);renderProgreso()">${exs.map(e => `<option ${e === ex ? 'selected' : ''}>${esc(e)}</option>`).join('')}</select>
+      <div class="chips" style="margin-top:10px">${Object.keys(METRIC_LBL).map(m => `<button class="chip ${m === pMetric ? 'on' : ''}" onclick="pMetric='${m}';renderProgreso()">${METRIC_LBL[m].replace(/ \(.*\)/, '')}</button>`).join('')}</div>
+      <div class="chips" style="margin-top:8px"><button class="chip ${pGroup === 'sesion' ? 'on' : ''}" onclick="pGroup='sesion';renderProgreso()">Por día</button>
+        <button class="chip ${pGroup === 'semana' ? 'on' : ''}" onclick="pGroup='semana';renderProgreso()">Por semana</button></div></div>
+    ${statsHtml}
+    <div class="card"><div class="canvas-wrap"><canvas id="cEx"></canvas></div></div>
+    ${tableHtml}` : ''}
+
+    <div class="card"><h2>Series por músculo · esta semana</h2>
+      <p class="small mut" style="margin-top:-6px">Zona verde = 10–20 series semanales (rango recomendado para crecer).</p>
+      ${grupos.map(g => `<div class="row" style="margin-bottom:6px"><span style="width:70px" class="small"><b>${g}</b></span>
+        <div class="musc grow"><div class="zone" style="left:${10 / 25 * 100}%;width:${10 / 25 * 100}%"></div><i style="width:${Math.min(100, (mg[g] || 0) / 25 * 100)}%"></i><span>${mg[g] || 0}</span></div></div>`).join('')}
+    </div>
+
+    <div class="card"><h2>Volumen semanal</h2><div class="canvas-wrap"><canvas id="cVol"></canvas></div></div>
+    ${DB.pesos.length ? `<div class="card"><h2>Peso corporal</h2><div class="canvas-wrap"><canvas id="cPeso"></canvas></div></div>` : ''}
+    ${DB.comidas.length ? `<div class="card"><h2>Calorías · 14 días</h2><div class="canvas-wrap"><canvas id="cKcal"></canvas></div></div>` : ''}
+    ${exs.length ? `<div class="card"><h2>🏆 Récords personales</h2><table class="list"><tr><th>Ejercicio</th><th>Máx</th><th>1RM est.</th></tr>
+      ${exs.map(e => { const s = exSeries(e); return `<tr><td>${esc(e)}</td><td><b>${fmt(Math.max(...s.map(p => p.peso)))}</b></td><td>${fmt(Math.max(...s.map(p => p.e1rm)))}</td></tr>`; }).join('')}</table></div>` : ''}`;
+
+  const grad = ctx => { const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 230); g.addColorStop(0, 'rgba(255,61,0,.45)'); g.addColorStop(1, 'rgba(255,0,85,0)'); return g; };
+  if (pts.length) mkChart('cEx', { type: pMetric === 'vol' || pMetric === 'reps' ? 'bar' : 'line',
+    data: { labels: data.map(p => fmtDate(p.fecha)), datasets: [{ data: data.map(p => Math.round(p[pMetric] * 10) / 10), borderColor: '#ff3d00', backgroundColor: grad,
+      fill: true, tension: .3, pointRadius: 3, pointBackgroundColor: '#ff3d00', borderWidth: 3, borderRadius: 6 }] },
+    options: chartOpts({ plugins: { legend: { display: false }, title: { display: true, text: METRIC_LBL[pMetric].toUpperCase(), color: '#f5f5f7' } } }) });
+
+  const wk = {}; sessions.forEach(s => { const w = weekStart(s.fecha); wk[w] = (wk[w] || 0) + s.vol; });
+  const wks = Object.keys(wk).sort().slice(-16);
+  mkChart('cVol', { type: 'bar', data: { labels: wks.map(fmtDate), datasets: [{ data: wks.map(w => Math.round(wk[w])), backgroundColor: '#ff3d00', borderRadius: 6 }] }, options: chartOpts() });
+
+  if (DB.pesos.length) {
+    const ps = DB.pesos.slice().sort((a, b) => a.fecha.localeCompare(b.fecha)).slice(-60);
+    const ma = ps.map((p, i) => { const w = ps.slice(Math.max(0, i - 6), i + 1); return Math.round(sum(w, x => num(x.peso)) / w.length * 10) / 10; });
+    mkChart('cPeso', { type: 'line', data: { labels: ps.map(p => fmtDate(p.fecha)), datasets: [
+      { label: 'Peso', data: ps.map(p => num(p.peso)), borderColor: 'rgba(79,195,255,.4)', pointRadius: 2, borderWidth: 1 },
+      { label: 'Promedio 7 días', data: ma, borderColor: '#4fc3ff', pointRadius: 0, borderWidth: 3, tension: .3 }] },
+      options: chartOpts({ plugins: { legend: { display: true, labels: { color: '#8b8b96', boxWidth: 12 } } } }) });
+  }
+  if (DB.comidas.length) {
+    const ds = []; for (let i = 13; i >= 0; i--) ds.push(addDays(todayStr(), -i));
+    const T = targets();
+    mkChart('cKcal', { type: 'bar', data: { labels: ds.map(fmtDate), datasets: [
+      { type: 'line', label: 'Objetivo', data: ds.map(() => T.kcal), borderColor: '#c8ff00', borderDash: [6, 4], pointRadius: 0, borderWidth: 2 },
+      { label: 'kcal', data: ds.map(d => Math.round(dayTotals(d).kcal)), backgroundColor: ds.map(d => dayTotals(d).kcal > T.kcal * 1.05 ? '#ff4d4d' : '#ff3d00'), borderRadius: 6 }] },
+      options: chartOpts() });
+  }
+}
+
+/* =====================================================================
+   PERFIL
+   ===================================================================== */
+function renderPerfil() {
+  const c = DB.cfg, T = targets(), a = c.auto || {};
+  const pesos = DB.pesos.slice().sort((x, y) => y.fecha.localeCompare(x.fecha));
+  const sel = (id, opts, v) => `<select id="${id}">${opts.map(o => `<option value="${o[0]}" ${String(o[0]) === String(v) ? 'selected' : ''}>${o[1]}</option>`).join('')}</select>`;
+  $('#v-perfil').innerHTML = `
+    <div class="card"><h2>⚖️ Peso corporal</h2>
+      <div class="row"><input id="pw" inputmode="decimal" placeholder="Peso de hoy (kg)" class="grow" value="${pesos[0] && pesos[0].fecha === todayStr() ? pesos[0].peso : ''}">
+        <button class="btn" onclick="savePesoUI($('#pw').value)">Guardar</button></div>
+      <p class="small mut">Pesate a la mañana, en ayunas. La app usa el promedio de 7 días para ajustar tus calorías sola.</p>
+      ${pesos.slice(0, 7).map(p => `<div class="item" style="cursor:default"><span class="grow">${esc(fmtDate(p.fecha))}</span><b>${fmt(num(p.peso))} kg</b>
+        <button class="btn danger" onclick="delPesoUI('${esc(p.fecha)}')">✕</button></div>`).join('')}
+    </div>
+
+    <div class="card"><h2>🎯 Objetivos</h2>
+      <div class="grid2" style="margin:0">
+        <div><label class="f">Sexo</label>${sel('fsexo', [['m', 'Hombre'], ['f', 'Mujer']], c.sexo || 'm')}</div>
+        <div><label class="f">Edad</label><input id="fedad" inputmode="numeric" value="${esc(c.edad || '')}"></div>
+        <div><label class="f">Altura (cm)</label><input id="falt" inputmode="numeric" value="${esc(c.altura || '')}"></div>
+        <div><label class="f">Entrenos / semana</label><input id="fent" inputmode="numeric" value="${esc(c.entrenosSemana || 3)}"></div>
+      </div>
+      <label class="f">Actividad (fuera del gym)</label>${sel('fact', [[1.375, 'Sedentario (oficina)'], [1.55, 'Moderada (de pie, camino)'], [1.725, 'Alta (trabajo físico)'], [1.9, 'Muy alta']], c.actividad || 1.55)}
+      <label class="f">Objetivo</label>${sel('fobj', [['perder', '🔥 Definir (bajar grasa)'], ['mantener', '⚖️ Recomposición / mantener'], ['ganar', '💪 Volumen (ganar masa)']], c.objetivo || 'mantener')}
+      <label class="f">Calorías manuales (opcional, deja vacío para cálculo automático)</label><input id="fman" inputmode="numeric" value="${esc(c.kcalManual || '')}">
+      <div class="grid3" style="margin-top:14px">
+        <div class="center"><div class="big hot" style="font-size:24px">${T.kcal}</div><div class="eyebrow">kcal</div></div>
+        <div class="center"><div class="big" style="font-size:24px;color:var(--p)">${T.prot}g</div><div class="eyebrow">Proteína</div></div>
+        <div class="center"><div class="big" style="font-size:24px;color:var(--c)">${T.carb}g</div><div class="eyebrow">Carbos</div></div>
+      </div>
+      <p class="small mut center">Grasas ${T.grasa} g · Mantenimiento ≈ ${T.tdee} kcal${num(c.kcalAjuste) ? ' · Ajuste automático ' + (c.kcalAjuste > 0 ? '+' : '') + c.kcalAjuste + ' kcal' : ''}</p>
+      <button class="btn block" onclick="saveProfile()">Guardar objetivos</button>
+      ${num(c.kcalAjuste) ? `<div class="center"><button class="btn ghost small" onclick="DB.cfg.kcalAjuste=0;saveCfg().then(renderPerfil)">Resetear ajuste automático</button></div>` : ''}
+    </div>
+
+    ${GAS ? '' : `<div class="card"><h2>🤖 Automático</h2>
+      <p class="small mut" style="margin-top:-6px">La app ya hace sola: sugerencia de peso por ejercicio, detección de récords, grupo muscular de cada ejercicio y ajuste de calorías según tu peso real.${SAMPLE ? ' El Coach IA está en Inicio.' : ''}</p>
+      ${DOWNLOADS ? `<div class="row"><button class="btn sec grow" onclick="exportData('json')">⬇ Respaldo completo</button><button class="btn sec grow" onclick="exportData('csv')">⬇ Series (CSV)</button></div>` : ''}
+      <p class="small mut">Tus datos se guardan en tu cuenta de Claude, privados: solo vos los ves.</p></div>`}
+    <div class="card${GAS ? '' : ' hide'}"><h2>🤖 Automatizaciones</h2>
+      <p class="small mut" style="margin-top:-6px">Corren solas en los servidores de Google aunque no abras la app. Te llegan por mail.</p>
+      <div class="item" style="cursor:default"><div class="grow"><b>Reporte semanal</b><div class="small mut">Lunes 8 am: entrenos, volumen, récords, calorías y peso.</div></div>
+        <label class="switch"><input type="checkbox" id="aSem" ${a.semanal ? 'checked' : ''}><i></i></label></div>
+      <div class="item" style="cursor:default"><div class="grow"><b>Recordatorio diario</b><div class="small mut">Solo si no registraste comida, hace 3+ días que no entrenás o no te pesás hace una semana.</div></div>
+        <label class="switch"><input type="checkbox" id="aRec" ${a.recordatorio ? 'checked' : ''}><i></i></label></div>
+      <div class="row" style="margin-top:8px"><label class="small mut grow">Hora del recordatorio</label>
+        <select id="aHora" style="width:110px">${Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${(a.hora == null ? 21 : a.hora) == h ? 'selected' : ''}>${h}:00</option>`).join('')}</select></div>
+      <div class="row" style="margin-top:12px"><button class="btn grow" onclick="saveAuto()">Activar</button><button class="btn sec" onclick="testReport()">📧 Probar</button></div>
+      <p class="small mut">También automático: sugerencia de peso por ejercicio, detección de récords, grupo muscular de cada ejercicio y ajuste de calorías según tu peso real.</p>
+    </div>
+
+    <div class="card"><h2>📊 Tus números</h2>
+      <div class="grid3">
+        <div class="center"><div class="big" style="font-size:26px">${sessions.length}</div><div class="eyebrow">Entrenos</div></div>
+        <div class="center"><div class="big" style="font-size:26px">${fmt(sum(sessions, s => s.vol) / 1000)}t</div><div class="eyebrow">Levantadas</div></div>
+        <div class="center"><div class="big" style="font-size:26px">${DB.registros.length}</div><div class="eyebrow">Series</div></div>
+      </div>
+      <p class="center mut small">${esc(comparacion(sum(sessions, s => s.vol)))}</p>
+      ${DB.sheetUrl ? `<a class="btn sec block" style="display:block;text-align:center;text-decoration:none;margin-top:8px" href="${esc(DB.sheetUrl)}" target="_blank">Abrir mi planilla de datos ↗</a>` : ''}
+    </div>`;
+}
+async function saveProfile() {
+  Object.assign(DB.cfg, { sexo: $('#fsexo').value, edad: num($('#fedad').value), altura: num($('#falt').value), entrenosSemana: num($('#fent').value) || 3,
+    actividad: num($('#fact').value), objetivo: $('#fobj').value, kcalManual: num($('#fman').value) });
+  await saveCfg(); renderPerfil(); renderHeader(); toast('🎯 Objetivo: ' + targets().kcal + ' kcal · ' + targets().prot + ' g proteína');
+}
+function pesoSheet() {
+  openSheet(`<div class="row"><h2 class="grow" style="margin:0">⚖️ Peso de hoy</h2><button class="btn sec" onclick="closeSheet()">✕</button></div>
+    <input id="pw2" inputmode="decimal" placeholder="kg" style="margin:12px 0;font-size:28px;text-align:center" value="${latestWeight() || ''}">
+    <button class="btn block" onclick="savePesoUI($('#pw2').value);closeSheet()">Guardar</button>`);
+}
+function savePesoUI(v) {
+  const p = num(v); if (p < 20 || p > 400) return toast('Peso inválido');
+  const f = todayStr();
+  DB.pesos = DB.pesos.filter(x => x.fecha !== f).concat([{ fecha: f, peso: p }]); cacheNow(); rerender(); toast('⚖️ ' + fmt(p) + ' kg guardado');
+  call('savePeso', f, p).catch(e => toast('No se pudo guardar: ' + errMsg(e), 4000));
+}
+function delPesoUI(f) {
+  DB.pesos = DB.pesos.filter(x => x.fecha !== f); cacheNow(); rerender();
+  call('deletePeso', f).catch(e => toast('No se pudo borrar: ' + errMsg(e), 4000));
+}
+async function saveAuto() {
+  try {
+    toast('Configurando…');
+    const r = await call('setupAutomations', { semanal: $('#aSem').checked, recordatorio: $('#aRec').checked, hora: num($('#aHora').value) });
+    DB.cfg.auto = r.auto; cacheNow();
+    toast(r.auto.semanal || r.auto.recordatorio ? '🤖 Listo. Te llegan los mails a ' + esc(r.email) : 'Automatizaciones desactivadas', 4000);
+  } catch (e) { toast('Error: ' + errMsg(e), 5000); }
+}
+async function testReport() {
+  try { toast('Enviando…'); const em = await call('sendReportNow'); toast('📧 Reporte enviado a ' + esc(em), 4000); }
+  catch (e) { toast('Error: ' + errMsg(e), 5000); }
+}
+
+/* =====================================================================
+   ARRANQUE
+   ===================================================================== */
+setInterval(() => { if (workout && view === 'entrenar') updateLive(); }, 1000);
+(function init() {
+  workout = store.get('draft');
+  const cache = store.get('cache');
+  if (cache) { setData(cache); $('#loading').classList.add('hide'); show('inicio'); }
+  call('getData').then(d => {
+    setData(d); $('#loading').classList.add('hide');
+    if (!$('#sheet').classList.contains('hide')) return; // no interrumpir si hay un modal abierto
+    const editing = view === 'entrenar' && entrenarMode === 'rutina';
+    if (!editing && !(view === 'entrenar' && workout)) show(view); else renderHeader();
+    if (workout) toast('Retomaste tu entrenamiento en curso');
+  }).catch(err => {
+    if (cache) return toast('Sin conexión: mostrando datos guardados', 4000);
+    $('#loading').innerHTML = '<div class="logo">HIERRO</div><div style="padding:20px;text-align:center" class="mut">No se pudieron cargar los datos.<br><small>' + errMsg(err) + '</small></div>';
+  });
+})();
+</script>

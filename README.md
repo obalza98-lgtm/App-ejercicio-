@@ -37,7 +37,14 @@ Corre como web app de Google Apps Script y guarda todo en un Google Sheets tuyo.
 ### 😤 Personalidad
 Racha 🔥 de semanas cumpliendo tu meta, frases del día, mensajes al terminar ("BESTIA. Sesión guardada.") y tu tonelaje total comparado con elefantes 🐘.
 
-## Instalación (unos 5 minutos)
+## Dos formas de usarla
+
+- **Versión en Claude, sin instalar nada:** ya publicada como página privada tuya en claude.ai. Guarda tus datos en tu cuenta de Claude y suma **IA**: calorías a partir de una descripción o una foto, y un coach que analiza tus últimas 4 semanas. No trae el buscador online ni los mails automáticos. Se genera con `python3 web/build_claude.py`, que crea `web/hierro-claude.html` a partir de `Index.html`.
+- **Versión Google Sheets (Apps Script):** tus datos en tu planilla, buscador online de alimentos y mails automáticos. Instalación abajo.
+
+El mismo `Index.html` sirve para las dos: detecta solo dónde está corriendo.
+
+## Instalación en Google Sheets (unos 5 minutos)
 
 1. Creá un Google Sheets nuevo (por ejemplo "HIERRO").
 2. En el menú, abrí **Extensiones → Apps Script**.

@@ -14,6 +14,9 @@ const SH = {
 };
 const TEXT_COLS = ['fecha', 'creado']; // se guardan como texto para que Sheets no las convierta
 
+/** Opcional: ID de la planilla a usar si el script NO está creado desde Extensiones → Apps Script. */
+const SHEET_ID = '';
+
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('HIERRO')
@@ -27,6 +30,7 @@ function doGet() {
 function getSS_() {
   const active = SpreadsheetApp.getActiveSpreadsheet();
   if (active) return active;
+  if (SHEET_ID) return SpreadsheetApp.openById(SHEET_ID);
   const props = PropertiesService.getScriptProperties();
   const id = props.getProperty('SS_ID');
   if (id) {
